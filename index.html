@@ -880,6 +880,7 @@
     function resetPowderBuffer() {
       scratchDepth.fill(0);
       clearVectorPoints();
+      if (typeof vectorLineMat !== 'undefined' && vectorLineMat) vectorLineMat.opacity = 0.95;
       renderPowderScreen();
       if (screenTexture) screenTexture.needsUpdate = true;
       updateTelemetryHUD();
@@ -1506,7 +1507,17 @@
         rootAssembly.position.y = Math.max(-35, Math.min(35, rootAssembly.position.y - dy * 0.4));
         rootAssembly.rotation.z = Math.max(-0.25, Math.min(0.25, rootAssembly.rotation.z + dx * 0.002));
 
-        if (chassisVelocitySum > 90 || moveSpeed > 18) {
+        // Transfer manual drag momentum to internal beads
+        if (moveSpeed > 6) {
+          for (let k = 0; k < 25; k++) {
+            const idx = Math.floor(Math.random() * BEAD_COUNT);
+            beadsPhysics[idx].vx += dx * 5.5;
+            beadsPhysics[idx].vy -= dy * 5.5;
+            beadsPhysics[idx].vz += moveSpeed * 1.8;
+          }
+        }
+
+        if (chassisVelocitySum > 85 || moveSpeed > 17) {
           startShakeAnimation();
           chassisVelocitySum = 0;
         }
@@ -1795,17 +1806,18 @@
     // =========================================================================
     let isShaking = false;
     let shakeStartTime = 0;
-    const SHAKE_DURATION = 1500;
+    const SHAKE_DURATION = 1650;
 
     function startShakeAnimation() {
       if (isShaking) return;
       isShaking = true;
       shakeStartTime = performance.now();
 
+      // Energetically agitate polystyrene beads toward glass face
       for (const bp of beadsPhysics) {
-        bp.vx = (Math.random() - 0.5) * 480;
-        bp.vy = 260 + Math.random() * 520;
-        bp.vz = (Math.random() - 0.5) * 110;
+        bp.vx = (Math.random() - 0.5) * 580;
+        bp.vy = 320 + Math.random() * 620;
+        bp.vz = 50 + Math.random() * 140;
       }
     }
 
@@ -2028,7 +2040,7 @@
         updateTelemetryHUD();
       }
 
-      // 3. Realistic Harmonic Shaking Simulation
+      // 3. Realistic Harmonic Shaking Simulation & Continuous Natural Erasing
       let shakeAccX = 0;
       let shakeAccY = 0;
 
@@ -2042,22 +2054,40 @@
           rootAssembly.rotation.set(0, 0, 0);
           resetPowderBuffer();
         } else {
-          const decay = Math.exp(-progress * 3.2);
-          const freq = 16.0;
-          const osc = Math.sin(progress * Math.PI * freq) * decay;
+          // Natural bell-shaped excitation envelope: acceleration -> peak turbulence -> calm settling
+          const envelope = Math.sin(progress * Math.PI);
+          const freq = 14.5;
+          const osc = Math.sin(progress * Math.PI * freq) * envelope;
 
-          rootAssembly.position.x = osc * 14.0;
-          rootAssembly.position.y = Math.cos(progress * Math.PI * freq) * decay * 8.0;
-          rootAssembly.rotation.z = osc * 0.08;
-          rootAssembly.rotation.x = Math.sin(progress * Math.PI * 4) * decay * 0.05;
+          rootAssembly.position.x = osc * 16.0;
+          rootAssembly.position.y = Math.cos(progress * Math.PI * freq) * envelope * 9.5;
+          rootAssembly.rotation.z = osc * 0.085;
+          rootAssembly.rotation.x = Math.sin(progress * Math.PI * 3.5) * envelope * 0.055;
 
-          shakeAccX = -osc * 900.0;
-          shakeAccY = Math.cos(progress * Math.PI * freq) * decay * 800.0;
+          shakeAccX = -osc * 1150.0;
+          shakeAccY = Math.cos(progress * Math.PI * freq) * envelope * 1050.0;
 
-          const fade = 0.94;
-          for (let i = 0; i < scratchDepth.length; i += 4) {
-            scratchDepth[i] *= fade;
+          // Continuous 3D Vector Line Opacity Fade (Smooth cubic Hermite transition)
+          if (typeof vectorLineMat !== 'undefined' && vectorLineMat) {
+            const fadeT = Math.max(0, Math.min(1, progress * 1.15));
+            const alpha = 1.0 - fadeT * fadeT * (3.0 - 2.0 * fadeT);
+            vectorLineMat.opacity = 0.95 * alpha;
           }
+
+          // Continuous Organic Powder Cloud Recoat: exponentially dampens scratch trench depth
+          const powderCloudErase = Math.pow(0.935, dt * 60 * (0.75 + envelope * 1.25));
+          for (let i = 0; i < scratchDepth.length; i++) {
+            if (scratchDepth[i] > 0.001) {
+              scratchDepth[i] *= powderCloudErase;
+              if (progress > 0.85 && scratchDepth[i] < 0.02) {
+                scratchDepth[i] = 0.0;
+              }
+            }
+          }
+
+          renderPowderScreen();
+          if (screenTexture) screenTexture.needsUpdate = true;
+          updateTelemetryHUD();
         }
       }
 
@@ -2099,16 +2129,21 @@
         if (bp.z < minZ) { bp.z = minZ; bp.vz = -bp.vz * restitution; }
         else if (bp.z > maxZ) { bp.z = maxZ; bp.vz = -bp.vz * restitution; }
 
-        // Active screen powder clearing on glass contact
-        if (isShaking && bp.z > 7.0 && bp.y > minY + 10) {
+        // Active screen powder clearing on glass contact with soft radial scrub
+        if ((isShaking || currentInteraction === 'chassis') && bp.z > 5.5 && bp.y > minY + 8) {
           const scrX = Math.round(((bp.x + sw2) / SCR_W) * PW);
           const scrY = Math.round(((-bp.y + sh2 + SCR_OFFSET_Y) / SCR_H) * PH);
 
-          if (scrX >= 3 && scrX < PW - 3 && scrY >= 3 && scrY < PH - 3) {
-            for (let dy = -2; dy <= 2; dy++) {
+          if (scrX >= 8 && scrX < PW - 8 && scrY >= 8 && scrY < PH - 8) {
+            const scrubR = 6;
+            for (let dy = -scrubR; dy <= scrubR; dy++) {
               const row = (scrY + dy) * PW;
-              for (let dx = -2; dx <= 2; dx++) {
-                scratchDepth[row + scrX + dx] *= 0.65;
+              for (let dx = -scrubR; dx <= scrubR; dx++) {
+                const distSq = dx * dx + dy * dy;
+                if (distSq <= scrubR * scrubR) {
+                  const factor = 0.42 + 0.55 * (distSq / (scrubR * scrubR));
+                  scratchDepth[row + scrX + dx] *= factor;
+                }
               }
             }
             screenErasedByBeads = true;
@@ -2118,7 +2153,7 @@
         beads[i].position.set(bp.x, bp.y, bp.z);
       }
 
-      if (screenErasedByBeads) {
+      if (screenErasedByBeads && !isShaking) {
         renderPowderScreen();
         if (screenTexture) screenTexture.needsUpdate = true;
       }
