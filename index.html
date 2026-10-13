@@ -728,15 +728,24 @@
             <span>고급 이미지 오일러 플로터 (Etchbot)</span>
           </div>
           <input type="file" id="fileImageInput" accept="image/*" style="font-size:11px; color:#cbd5e1;">
-          <select id="selScreentoneMode" style="margin-top: 4px;">
-            <option value="etchbot_tsp" selected>⭐ Etchbot TSP 윤곽 순회 (Bosch 2-Opt)</option>
+          <div class="field-row" style="margin-top: 6px;">
+            <span>플로터 분해능 (Resolution)</span>
+            <span class="field-val" id="lblPlotterRes">2,200 pts</span>
+          </div>
+          <select id="selPlotterResolution">
+            <option value="1200">표준 분해능 (Standard, 1,200 pts)</option>
+            <option value="2200" selected>고해상도 (High Detail, 2,200 pts)</option>
+            <option value="3200">초고해상도 (Ultra Detail, 3,200 pts)</option>
+          </select>
+          <select id="selScreentoneMode" style="margin-top: 6px;">
+            <option value="etchbot_tsp" selected>⭐ Etchbot TSP 적응형 에러디퓨전 (2-Opt)</option>
             <option value="boustrophedon">부스트로페돈 해칭 (종횡비 보존)</option>
             <option value="dot">도트 매트릭스 하프톤</option>
             <option value="line">라인 스크린톤</option>
             <option value="crosshatch">크로스 해칭</option>
           </select>
           <div style="font-size: 11px; color: var(--text-dim); line-height: 1.4;">
-            * 어떤 해상도/종횡비의 이미지도 화면에 맞춰 비율 왜곡 없이 레터박스 자동 정렬되며, 100% 무절단(Pen Lifts: 0) 오일러 경로를 생성합니다.
+            * Floyd-Steinberg 에러 디퓨전 및 공간 버킷 가속으로 3,000+ 포인트를 지연 없이 100% 무절단(Pen Lifts: 0) 단일 선으로 자동 플로팅합니다.
           </div>
         </div>
 
@@ -1709,15 +1718,16 @@
           const imgData = tCtx.getImageData(0, 0, fitW, fitH);
 
           const mode = document.getElementById('selScreentoneMode').value;
+          const maxPts = parseInt(document.getElementById('selPlotterResolution').value, 10) || 2200;
           let ePath = [];
 
           if (mode === 'etchbot_tsp') {
             // [ETCHBOT TSP MODE]
             ePath = LightScreentone.generateEtchbotTSP(PW, PH, imgData, {
-              maxPoints: 950,
-              threshold: 0.40,
+              maxPoints: maxPts,
+              threshold: 0.38,
               optIterations: 45,
-              margin: 32,
+              margin: 28,
               humanize: humanizeOn
             });
           } else {
@@ -1911,6 +1921,10 @@
       drawArtPreset(document.getElementById('selArtPreset').value);
     };
 
+    document.getElementById('selPlotterResolution').onchange = (e) => {
+      document.getElementById('lblPlotterRes').textContent = parseInt(e.target.value, 10).toLocaleString() + ' pts';
+    };
+
     document.getElementById('selCrosshair').onchange = (e) => {
       armShadowOn = e.target.value === '1';
       document.getElementById('lblCrosshair').textContent = armShadowOn ? 'ON' : 'OFF (은은함)';
@@ -1986,19 +2000,28 @@
       // 1. Continuous Keyboard Input
       handleContinuousKeyboardInput();
 
-      // 2. Stylus Mechanical Movement with Inertia & Spring Damping
-      const springK = 38.0;
-      const damping = 13.5;
+      // 2. Stylus Mechanical Movement (Critically Damped Minimal Buffer against Grid Aliasing)
+      const springK = 220.0; // High stiffness to eliminate sluggish lag & floatiness
+      const damping = 29.5;  // Critically damped (2 * sqrt(k) ~ 29.66) for immediate 1-frame response
       const ax = (targetStylusX - stylusX) * springK - stylusVx * damping;
       const ay = (targetStylusY - stylusY) * springK - stylusVy * damping;
 
       stylusVx += ax * dt;
       stylusVy += ay * dt;
 
-      const nextX = stylusX + stylusVx * dt;
-      const nextY = stylusY + stylusVy * dt;
+      let nextX = stylusX + stylusVx * dt;
+      let nextY = stylusY + stylusVy * dt;
 
-      if (Math.hypot(nextX - stylusX, nextY - stylusY) > 0.05) {
+      // Sub-pixel deadband snap: prevents lingering floatiness while eliminating pixel staircasing
+      const distToTarget = Math.hypot(targetStylusX - nextX, targetStylusY - nextY);
+      if (distToTarget < 0.15 && Math.hypot(stylusVx, stylusVy) < 0.5) {
+        nextX = targetStylusX;
+        nextY = targetStylusY;
+        stylusVx = 0.0;
+        stylusVy = 0.0;
+      }
+
+      if (Math.hypot(nextX - stylusX, nextY - stylusY) > 0.02) {
         scratchSegment(stylusX, stylusY, nextX, nextY);
         renderPowderScreen();
         if (screenTexture) screenTexture.needsUpdate = true;
