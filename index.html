@@ -942,19 +942,21 @@
     }
 
     // High-performance continuous line scratch with Zero-Cost Edge Fade
-    function scratchSegment(x1, y1, x2, y2) {
+    function scratchSegment(x1, y1, x2, y2, weightScale = 1.0) {
       const dx = x2 - x1;
       const dy = y2 - y1;
 
       knobAngleX += dx * 0.4;
       knobAngleY += dy * 0.4;
 
+      const ws = Math.max(0.35, Math.min(1.0, weightScale));
+
       // Pass 1: Realistic Edge Fade (Soft Semi-Transparent Powder Falloff Halo)
       pCtx.beginPath();
       pCtx.moveTo(x1, y1);
       pCtx.lineTo(x2, y2);
       pCtx.strokeStyle = 'rgba(115, 120, 128, 0.38)';
-      pCtx.lineWidth = 4.2;
+      pCtx.lineWidth = 4.2 * ws;
       pCtx.lineCap = 'round';
       pCtx.lineJoin = 'round';
       pCtx.stroke();
@@ -964,7 +966,7 @@
       pCtx.moveTo(x1, y1);
       pCtx.lineTo(x2, y2);
       pCtx.strokeStyle = 'rgba(24, 23, 22, 0.95)';
-      pCtx.lineWidth = 1.9;
+      pCtx.lineWidth = 1.9 * ws;
       pCtx.lineCap = 'round';
       pCtx.lineJoin = 'round';
       pCtx.stroke();
@@ -1654,7 +1656,8 @@
           .then(pts => {
             currentEulerianPath = pts;
             for (let i = 0; i < pts.length - 1; i++) {
-              scratchSegment(pts[i].x, pts[i].y, pts[i+1].x, pts[i+1].y);
+              const w = (pts[i+1] && pts[i+1].w !== undefined) ? pts[i+1].w : 1.0;
+              scratchSegment(pts[i].x, pts[i].y, pts[i+1].x, pts[i+1].y, w);
             }
             targetStylusX = stylusX;
             targetStylusY = stylusY;
