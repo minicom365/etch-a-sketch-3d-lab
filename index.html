@@ -558,7 +558,7 @@
       <div class="brand-title">
         MAGIC <span class="gold-txt">Etch A Sketch</span> 3D LAB
         <span class="patent-badge">US PAT. 3,055,113</span>
-        <span class="status-badge"><span class="status-dot"></span>60 FPS</span>
+        <span class="status-badge" id="fpsBadge"><span class="status-dot"></span><span id="fpsVal">60</span> FPS</span>
       </div>
     </div>
 
@@ -738,7 +738,8 @@
             <option value="3200">초고해상도 (Ultra Detail, 3,200 pts)</option>
           </select>
           <select id="selScreentoneMode" style="margin-top: 6px;">
-            <option value="etchbot_tsp" selected>⭐ Etchbot TSP 적응형 에러디퓨전 (2-Opt)</option>
+            <option value="etch_masterpiece" selected>🏆 에치 마스터피스 (ETF 트로코이드 잉크 폐루프 & 스텔스 라우팅)</option>
+            <option value="etchbot_tsp">⭐ Etchbot TSP 적응형 에러디퓨전 (2-Opt)</option>
             <option value="boustrophedon">부스트로페돈 해칭 (종횡비 보존)</option>
             <option value="dot">도트 매트릭스 하프톤</option>
             <option value="line">라인 스크린톤</option>
@@ -877,137 +878,110 @@
     }
 
     // Reset powder to clean aluminum
+    // Cached Base Powder Aluminum Canvas (Pre-rendered once to eliminate 196k pixel loop every frame)
+    const basePowderCanvas = document.createElement('canvas');
+    basePowderCanvas.width = PW;
+    basePowderCanvas.height = PH;
+    const baseCtx = basePowderCanvas.getContext('2d');
+
+    function initBasePowderTexture() {
+      baseCtx.fillStyle = '#c7c9cd';
+      baseCtx.fillRect(0, 0, PW, PH);
+
+      const bImg = baseCtx.getImageData(0, 0, PW, PH);
+      const bData = bImg.data;
+      for (let i = 0; i < PW * PH; i++) {
+        const grain = (Math.random() - 0.5) * 5.0;
+        const al = Math.max(0, Math.min(255, 200 + grain));
+        const idx = i * 4;
+        bData[idx]     = al;
+        bData[idx + 1] = al;
+        bData[idx + 2] = al + 2;
+        bData[idx + 3] = 255;
+      }
+      baseCtx.putImageData(bImg, 0, 0);
+
+      // Glass inner frame shadow
+      const gTop = baseCtx.createLinearGradient(0, 0, 0, 20);
+      gTop.addColorStop(0, 'rgba(30,32,38,0.50)');
+      gTop.addColorStop(1, 'rgba(30,32,38,0)');
+      baseCtx.fillStyle = gTop;
+      baseCtx.fillRect(0, 0, PW, 20);
+
+      const gLeft = baseCtx.createLinearGradient(0, 0, 20, 0);
+      gLeft.addColorStop(0, 'rgba(30,32,38,0.50)');
+      gLeft.addColorStop(1, 'rgba(30,32,38,0)');
+      baseCtx.fillStyle = gLeft;
+      baseCtx.fillRect(0, 0, 20, PH);
+
+      if (glassRefractionOn) {
+        const diag = baseCtx.createLinearGradient(0, 0, PW, PH);
+        diag.addColorStop(0.32, 'rgba(255,255,255,0)');
+        diag.addColorStop(0.39, 'rgba(255,255,255,0.06)');
+        diag.addColorStop(0.46, 'rgba(255,255,255,0)');
+        baseCtx.fillStyle = diag;
+        baseCtx.fillRect(0, 0, PW, PH);
+      }
+    }
+    initBasePowderTexture();
+
+    // Reset powder to clean aluminum (Instant 0.02ms blit)
     function resetPowderBuffer() {
       scratchDepth.fill(0);
       clearVectorPoints();
       if (typeof vectorLineMat !== 'undefined' && vectorLineMat) vectorLineMat.opacity = 0.95;
-      renderPowderScreen();
+      if (typeof vectorHaloMat !== 'undefined' && vectorHaloMat) vectorHaloMat.opacity = 0.40;
+
+      pCtx.clearRect(0, 0, PW, PH);
+      pCtx.drawImage(basePowderCanvas, 0, 0);
+
       if (screenTexture) screenTexture.needsUpdate = true;
       updateTelemetryHUD();
     }
 
-    // High-performance continuous line scratch (Sub-step interpolation)
+    // High-performance continuous line scratch with Zero-Cost Edge Fade
     function scratchSegment(x1, y1, x2, y2) {
       const dx = x2 - x1;
       const dy = y2 - y1;
-      const dist = Math.hypot(dx, dy);
-      const steps = Math.max(1, Math.ceil(dist / 1.5));
 
       knobAngleX += dx * 0.4;
       knobAngleY += dy * 0.4;
 
-      for (let s = 0; s <= steps; s++) {
-        const cx = Math.floor(x1 + (dx * s) / steps);
-        const cy = Math.floor(y1 + (dy * s) / steps);
+      // Pass 1: Realistic Edge Fade (Soft Semi-Transparent Powder Falloff Halo)
+      pCtx.beginPath();
+      pCtx.moveTo(x1, y1);
+      pCtx.lineTo(x2, y2);
+      pCtx.strokeStyle = 'rgba(115, 120, 128, 0.38)';
+      pCtx.lineWidth = 4.2;
+      pCtx.lineCap = 'round';
+      pCtx.lineJoin = 'round';
+      pCtx.stroke();
 
-        for (let ry = -2; ry <= 2; ry++) {
-          const py = cy + ry;
-          if (py < 0 || py >= PH) continue;
-          const rowOff = py * PW;
-          for (let rx = -2; rx <= 2; rx++) {
-            const px = cx + rx;
-            if (px < 0 || px >= PW) continue;
-            scratchDepth[rowOff + px] = 1.0;
-          }
-        }
-      }
+      // Pass 2: Deep Core Physical Trench Groove
+      pCtx.beginPath();
+      pCtx.moveTo(x1, y1);
+      pCtx.lineTo(x2, y2);
+      pCtx.strokeStyle = 'rgba(24, 23, 22, 0.95)';
+      pCtx.lineWidth = 1.9;
+      pCtx.lineCap = 'round';
+      pCtx.lineJoin = 'round';
+      pCtx.stroke();
 
       stylusX = x2;
       stylusY = y2;
       addVectorPoint(x2, y2);
     }
 
-    // Render the physical powder canvas
+    // Optimized powder screen render (no per-frame full loop needed!)
     function renderPowderScreen() {
-      pCtx.fillStyle = '#c7c9cd';
-      pCtx.fillRect(0, 0, PW, PH);
-
-      const imgData = pCtx.getImageData(0, 0, PW, PH);
-      const data = imgData.data;
-
-      const rodIx = Math.floor(stylusX);
-      const rodIy = Math.floor(stylusY);
-
-      // Subtle shadow factor (0.02 when ON, 0 when OFF)
-      const shadowFactor = armShadowOn ? 0.025 : 0.0;
-
-      for (let y = 0; y < PH; y++) {
-        const rowOff = y * PW;
-        const dy = Math.abs(y - rodIy);
-        const shadowY = shadowFactor > 0 ? Math.max(0, 1.0 - dy / 20.0) * shadowFactor : 0;
-
-        for (let x = 0; x < PW; x++) {
-          const idx = (rowOff + x) * 4;
-          const dx = Math.abs(x - rodIx);
-          const shadowX = shadowFactor > 0 ? Math.max(0, 1.0 - dx / 20.0) * shadowFactor : 0;
-          const crossShadow = shadowX + shadowY;
-
-          const depth = scratchDepth[rowOff + x];
-
-          if (depth > 0.05) {
-            let rCav = 28, gCav = 26, bCav = 25;
-
-            // Rod reflections through trench
-            if (dx < 6) {
-              const spec = (1.0 - dx / 6.0);
-              rCav = 115 + spec * 75;
-              gCav = 120 + spec * 75;
-              bCav = 128 + spec * 75;
-            } else if (dy < 6) {
-              const spec = (1.0 - dy / 6.0);
-              rCav = 110 + spec * 75;
-              gCav = 115 + spec * 75;
-              bCav = 122 + spec * 75;
-            }
-
-            if (dx < 12 && dy < 12) {
-              rCav = 185; gCav = 150; bCav = 50; // Brass carriage
-            }
-
-            data[idx]     = rCav * 0.88 + 198 * 0.12;
-            data[idx + 1] = gCav * 0.88 + 200 * 0.12;
-            data[idx + 2] = bCav * 0.88 + 204 * 0.12;
-          } else {
-            const grain = (Math.random() - 0.5) * 5.0;
-            const al = Math.max(0, Math.min(255, (200 + grain) * (1.0 - crossShadow)));
-            data[idx]     = al;
-            data[idx + 1] = al;
-            data[idx + 2] = al + 2;
-          }
-        }
-      }
-
-      pCtx.putImageData(imgData, 0, 0);
-
-      // Glass inner frame shadow
-      const gTop = pCtx.createLinearGradient(0, 0, 0, 20);
-      gTop.addColorStop(0, 'rgba(30,32,38,0.50)');
-      gTop.addColorStop(1, 'rgba(30,32,38,0)');
-      pCtx.fillStyle = gTop;
-      pCtx.fillRect(0, 0, PW, 20);
-
-      const gLeft = pCtx.createLinearGradient(0, 0, 20, 0);
-      gLeft.addColorStop(0, 'rgba(30,32,38,0.50)');
-      gLeft.addColorStop(1, 'rgba(30,32,38,0)');
-      pCtx.fillStyle = gLeft;
-      pCtx.fillRect(0, 0, 20, PH);
-
-      if (glassRefractionOn) {
-        const diag = pCtx.createLinearGradient(0, 0, PW, PH);
-        diag.addColorStop(0.32, 'rgba(255,255,255,0)');
-        diag.addColorStop(0.39, 'rgba(255,255,255,0.06)');
-        diag.addColorStop(0.46, 'rgba(255,255,255,0)');
-        pCtx.fillStyle = diag;
-        pCtx.fillRect(0, 0, PW, PH);
-      }
-
-      // Stylus tip contact indicator
+      // The canvas maintains cumulative scratched lines natively.
+      // Redraw stylus contact indicator
       pCtx.beginPath();
-      pCtx.arc(stylusX, stylusY, 3.5, 0, Math.PI * 2);
-      pCtx.fillStyle = '#222';
+      pCtx.arc(stylusX, stylusY, 3.2, 0, Math.PI * 2);
+      pCtx.fillStyle = '#1e1c1a';
       pCtx.fill();
       pCtx.strokeStyle = 'rgba(255,255,255,0.85)';
-      pCtx.lineWidth = 1.2;
+      pCtx.lineWidth = 1.1;
       pCtx.stroke();
     }
 
@@ -1190,9 +1164,22 @@
     const vectorLineGeo = new THREE.BufferGeometry();
     vectorLineGeo.setAttribute('position', new THREE.BufferAttribute(vectorPositions, 3));
     vectorLineGeo.setDrawRange(0, 0);
+
+    // Pass 1: Soft Outer Powder Falloff Halo (Zero-Cost Shared Geometry, Z = 11.96)
+    const vectorHaloMat = new THREE.LineBasicMaterial({
+      color: 0x767a82,
+      linewidth: 3,
+      transparent: true,
+      opacity: 0.40
+    });
+    const vectorHaloMesh = new THREE.Line(vectorLineGeo, vectorHaloMat);
+    vectorHaloMesh.position.set(0, 0, -0.04);
+    layerScreen.add(vectorHaloMesh);
+
+    // Pass 2: Deep Core Physical Trench Line (Z = 12.0)
     const vectorLineMat = new THREE.LineBasicMaterial({
-      color: 0x1f1e1d,
-      linewidth: 2,
+      color: 0x1a1918,
+      linewidth: 1,
       transparent: true,
       opacity: 0.95
     });
@@ -1773,7 +1760,15 @@
           const maxPts = parseInt(document.getElementById('selPlotterResolution').value, 10) || 2200;
           let ePath = [];
 
-          if (mode === 'etchbot_tsp') {
+          if (mode === 'etch_masterpiece') {
+            // [ETCH MASTERPIECE MODE: ETF Trochoid Closed-Loop Ink & Stealth Routing]
+            ePath = LightScreentone.generateMasterpiecePlotterPath(PW, PH, imgData, {
+              maxPoints: maxPts,
+              spacing: maxPts > 2500 ? 4.2 : 5.0,
+              threshold: 0.48,
+              humanize: humanizeOn
+            });
+          } else if (mode === 'etchbot_tsp') {
             // [ETCHBOT TSP MODE]
             ePath = LightScreentone.generateEtchbotTSP(PW, PH, imgData, {
               maxPoints: maxPts,
@@ -2042,13 +2037,25 @@
     updateTelemetryHUD();
 
     let lastFrameTime = performance.now();
+    let rollingFps = 60.0;
+    let lastFpsUpdate = performance.now();
 
     function animate() {
       requestAnimationFrame(animate);
 
       const now = performance.now();
-      const dt = Math.min(0.033, (now - lastFrameTime) / 1000.0);
+      const dtMs = Math.max(0.5, now - lastFrameTime);
+      const dt = Math.min(0.033, dtMs / 1000.0);
       lastFrameTime = now;
+
+      // Real-time Dynamic Monitor Refresh Rate FPS Counter (60/120/144/240Hz detection)
+      const instantFps = 1000.0 / dtMs;
+      rollingFps = rollingFps * 0.92 + instantFps * 0.08;
+      if (now - lastFpsUpdate > 250) {
+        lastFpsUpdate = now;
+        const fpsEl = document.getElementById('fpsVal');
+        if (fpsEl) fpsEl.textContent = Math.round(rollingFps);
+      }
 
       // 1. Continuous Keyboard Input
       handleContinuousKeyboardInput();
@@ -2114,20 +2121,16 @@
             const fadeT = Math.max(0, Math.min(1, progress * 1.15));
             const alpha = 1.0 - fadeT * fadeT * (3.0 - 2.0 * fadeT);
             vectorLineMat.opacity = 0.95 * alpha;
-          }
-
-          // Continuous Organic Powder Cloud Recoat
-          const powderCloudErase = Math.pow(0.935, dt * 60 * (0.75 + envelope * 1.25));
-          for (let i = 0; i < scratchDepth.length; i++) {
-            if (scratchDepth[i] > 0.001) {
-              scratchDepth[i] *= powderCloudErase;
-              if (progress > 0.85 && scratchDepth[i] < 0.02) {
-                scratchDepth[i] = 0.0;
-              }
+            if (typeof vectorHaloMat !== 'undefined' && vectorHaloMat) {
+              vectorHaloMat.opacity = 0.40 * alpha;
             }
           }
 
-          renderPowderScreen();
+          // Continuous Organic Powder Cloud Recoat (Hardware-Accelerated 2D Canvas Blit)
+          pCtx.globalAlpha = Math.min(1.0, dt * 7.5 * (0.6 + envelope * 1.4));
+          pCtx.drawImage(basePowderCanvas, 0, 0);
+          pCtx.globalAlpha = 1.0;
+
           if (screenTexture) screenTexture.needsUpdate = true;
           updateTelemetryHUD();
         }
@@ -2160,17 +2163,17 @@
         // Erase lines dynamically during pudding bounce
         const currentEnergy = Math.hypot(puddingPosX, puddingPosY) + Math.hypot(puddingVelX, puddingVelY) * 0.035;
         if (currentEnergy > 1.5) {
-          const eraseRate = Math.pow(0.92, dt * 60 * Math.min(3.5, currentEnergy * 0.35));
-          for (let i = 0; i < scratchDepth.length; i++) {
-            if (scratchDepth[i] > 0.001) {
-              scratchDepth[i] *= eraseRate;
-              if (currentEnergy < 3.0 && scratchDepth[i] < 0.02) scratchDepth[i] = 0.0;
-            }
-          }
           if (typeof vectorLineMat !== 'undefined' && vectorLineMat) {
             vectorLineMat.opacity = Math.max(0, vectorLineMat.opacity - dt * currentEnergy * 0.14);
           }
-          renderPowderScreen();
+          if (typeof vectorHaloMat !== 'undefined' && vectorHaloMat) {
+            vectorHaloMat.opacity = Math.max(0, vectorHaloMat.opacity - dt * currentEnergy * 0.14);
+          }
+          // Hardware-accelerated smooth powder recoat
+          pCtx.globalAlpha = Math.min(1.0, dt * currentEnergy * 0.12);
+          pCtx.drawImage(basePowderCanvas, 0, 0);
+          pCtx.globalAlpha = 1.0;
+
           if (screenTexture) screenTexture.needsUpdate = true;
           updateTelemetryHUD();
         }
@@ -2183,12 +2186,7 @@
           puddingPosX = 0; puddingPosY = 0;
           puddingVelX = 0; puddingVelY = 0;
           isPuddingBouncing = false;
-
-          let scraped = 0;
-          for (let i = 0; i < scratchDepth.length; i += 32) {
-            if (scratchDepth[i] > 0.05) scraped++;
-          }
-          if (scraped < 8) resetPowderBuffer();
+          resetPowderBuffer();
         }
       }
 
@@ -2238,16 +2236,7 @@
 
           if (scrX >= 8 && scrX < PW - 8 && scrY >= 8 && scrY < PH - 8) {
             const scrubR = 6;
-            for (let dy = -scrubR; dy <= scrubR; dy++) {
-              const row = (scrY + dy) * PW;
-              for (let dx = -scrubR; dx <= scrubR; dx++) {
-                const distSq = dx * dx + dy * dy;
-                if (distSq <= scrubR * scrubR) {
-                  const factor = 0.42 + 0.55 * (distSq / (scrubR * scrubR));
-                  scratchDepth[row + scrX + dx] *= factor;
-                }
-              }
-            }
+            pCtx.drawImage(basePowderCanvas, scrX - scrubR, scrY - scrubR, scrubR * 2, scrubR * 2, scrX - scrubR, scrY - scrubR, scrubR * 2, scrubR * 2);
             screenErasedByBeads = true;
           }
         }
@@ -2255,8 +2244,7 @@
         beads[i].position.set(bp.x, bp.y, bp.z);
       }
 
-      if (screenErasedByBeads && !isShaking && !isPuddingBouncing) {
-        renderPowderScreen();
+      if (screenErasedByBeads) {
         if (screenTexture) screenTexture.needsUpdate = true;
       }
 
