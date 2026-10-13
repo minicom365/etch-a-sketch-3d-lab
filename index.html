@@ -7,14 +7,12 @@
   <style>
     :root {
       --bg: #090a0f;
-      --panel-bg: rgba(13, 15, 22, 0.88);
+      --panel-bg: rgba(13, 15, 22, 0.90);
       --panel-border: rgba(255, 255, 255, 0.08);
       --panel-border-hover: rgba(255, 255, 255, 0.16);
-      --card-bg: rgba(22, 26, 38, 0.6);
+      --card-bg: rgba(22, 26, 38, 0.65);
       --accent-red: #dc2626;
-      --accent-red-hover: #ef4444;
       --gold: #f59e0b;
-      --gold-dim: #b45309;
       --emerald: #10b981;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
@@ -40,8 +38,93 @@
       top: 0; left: 0;
       width: 100%; height: 100%;
       z-index: 1;
+      cursor: grab;
     }
+    #webgl-canvas:active { cursor: grabbing; }
     #powderCanvas { display: none; }
+
+    /* Floating Discrete DEV Mode Pill (Always Accessible) */
+    .dev-toggle-pill {
+      position: absolute;
+      top: 18px; right: 20px;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: rgba(18, 21, 30, 0.72);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      backdrop-filter: blur(16px);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .dev-toggle-pill:hover {
+      color: #fff;
+      border-color: var(--panel-border-hover);
+      background: rgba(30, 35, 50, 0.85);
+    }
+    .dev-toggle-pill.active {
+      color: #fff;
+      background: rgba(245, 158, 11, 0.2);
+      border-color: rgba(245, 158, 11, 0.5);
+    }
+    .dev-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--text-dim);
+    }
+    .dev-toggle-pill.active .dev-dot {
+      background: var(--gold);
+      box-shadow: 0 0 8px var(--gold);
+    }
+
+    /* Minimalist Physical Onboarding Hint */
+    .onboarding-hint {
+      position: absolute;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 25;
+      background: rgba(14, 16, 24, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 30px;
+      padding: 8px 18px;
+      color: var(--text-muted);
+      font-size: 12px;
+      backdrop-filter: blur(16px);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .onboarding-hint.fade-out { opacity: 0; }
+    .hint-chip {
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* UI Containers (Hidden by default, visible only in DEV Mode) */
+    .dev-ui-element {
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    body:not(.dev-mode) .dev-ui-element {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transform: translateY(-10px);
+    }
+    body:not(.dev-mode) .studio-sidebar {
+      transform: translateX(calc(100% + 40px)) !important;
+    }
+    body:not(.dev-mode) .bottom-dock {
+      transform: translate(-50%, 20px) !important;
+    }
 
     /* Top Studio Header */
     header {
@@ -51,7 +134,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 24px;
+      padding: 16px 140px 16px 24px;
       background: linear-gradient(180deg, rgba(9,10,15,0.94) 0%, rgba(9,10,15,0.4) 75%, transparent 100%);
       pointer-events: none;
     }
@@ -158,7 +241,7 @@
     .studio-sidebar {
       position: absolute;
       top: 76px; right: 24px;
-      width: 370px;
+      width: 375px;
       z-index: 20;
       background: var(--panel-bg);
       border: 1px solid var(--panel-border);
@@ -172,7 +255,7 @@
       overflow: hidden;
     }
     .studio-sidebar.collapsed {
-      transform: translateX(calc(100% + 30px));
+      transform: translateX(calc(100% + 40px));
       opacity: 0;
       pointer-events: none;
     }
@@ -213,7 +296,7 @@
       gap: 16px;
     }
 
-    /* Section & Cards */
+    /* Cards & Controls */
     .control-card {
       background: var(--card-bg);
       border: 1px solid var(--panel-border);
@@ -308,7 +391,7 @@
     }
     button.btn-ctrl.gold:hover { background: #b45309; }
 
-    /* Mode Pill Switches (Orthogonal vs Freeform) */
+    /* Mode Pill Switches */
     .mode-switch-group {
       display: flex;
       background: rgba(14, 17, 24, 0.85);
@@ -336,7 +419,7 @@
       border: 1px solid rgba(245, 158, 11, 0.4);
     }
 
-    /* Telemetry Data Table */
+    /* Telemetry Table */
     .telemetry-table {
       width: 100%;
       border-collapse: collapse;
@@ -346,9 +429,7 @@
       border-bottom: 1px solid rgba(255,255,255,0.04);
     }
     .telemetry-table tr:last-child { border-bottom: none; }
-    .telemetry-table td {
-      padding: 6px 0;
-    }
+    .telemetry-table td { padding: 6px 0; }
     .td-key { color: var(--text-muted); }
     .td-val {
       text-align: right;
@@ -452,8 +533,27 @@
   <!-- Offscreen 2D Powder Canvas (1024x768) -->
   <canvas id="powderCanvas" width="1024" height="768"></canvas>
 
-  <!-- Top Studio Header -->
-  <header>
+  <!-- Floating Discrete DEV Mode Pill -->
+  <button class="dev-toggle-pill" id="btnToggleDevMode" title="개발자 모드 토글 (단축키: D)">
+    <span class="dev-dot"></span>
+    <span>DEV MODE</span>
+  </button>
+
+  <!-- Physical Onboarding Hint (Fades out automatically) -->
+  <div class="onboarding-hint" id="onboardingHint">
+    <span>화면 드래그: <span class="hint-chip">직접 그리기</span></span>
+    <span>•</span>
+    <span>노브 드래그: <span class="hint-chip">원형 회전</span></span>
+    <span>•</span>
+    <span>빨간 본체 드래그: <span class="hint-chip">흔들기</span></span>
+    <span>•</span>
+    <span>배경 드래그: <span class="hint-chip">3D 회전</span></span>
+    <span>•</span>
+    <span><span class="hint-chip">[D]</span> 개발자 모드</span>
+  </div>
+
+  <!-- Top Studio Header (Dev Mode) -->
+  <header class="dev-ui-element">
     <div class="header-left">
       <div class="brand-title">
         MAGIC <span class="gold-txt">Etch A Sketch</span> 3D LAB
@@ -476,8 +576,8 @@
     </div>
   </header>
 
-  <!-- Unified Studio Sidebar -->
-  <div class="studio-sidebar" id="studioSidebar">
+  <!-- Unified Studio Sidebar (Dev Mode) -->
+  <div class="studio-sidebar dev-ui-element" id="studioSidebar">
     <div class="sidebar-header">
       <div class="sidebar-title" id="sidebarTitle">
         <span>🎮 인터랙티브 조작</span>
@@ -499,14 +599,14 @@
             <button class="mode-switch-btn" id="btnModeFree">↗ 자유 대각선 드로잉</button>
           </div>
           <div style="font-size: 11px; color: var(--text-dim); line-height: 1.4;">
-            * <strong>직교 단일축 잠금</strong>: 방향키나 노브 조작 시 대각선 이탈 없이 완벽한 수평/수직선을 보장합니다 (입력 꼬임 방지).
+            * <strong>직교 단일축 잠금</strong>: 방향키나 노브 조작 시 대각선 이탈 없이 완벽한 수평/수직선을 보장합니다 (입력 꼬임 원천 차단).
           </div>
         </div>
 
         <div class="control-card">
           <div class="card-title">
             <span>회전 다이얼 조작</span>
-            <span style="font-size:10px; color:var(--text-dim);">3D 노브 직접 드래그 가능</span>
+            <span style="font-size:10px; color:var(--text-dim);">원형 회전 각도 연동</span>
           </div>
           <div class="field-group">
             <div class="field-row">
@@ -530,12 +630,14 @@
 
         <div class="control-card">
           <div class="card-title">
-            <span>키보드 조작 가이드</span>
-            <span style="color:var(--emerald); font-size:10px;">60 FPS 연속선</span>
+            <span>물리 촉각 인터랙션</span>
+            <span style="color:var(--emerald); font-size:10px;">동적 제스처</span>
           </div>
-          <div style="font-size: 12px; color: var(--text-muted); line-height: 1.6;">
-            • <strong>WASD</strong> 또는 <strong>방향키</strong>: 펜 떼기 없는 연속 선 그리기<br>
-            • <strong>3D 백색 노브</strong>: 마우스 클릭 후 좌우/상하 드래그로 직접 회전 가능
+          <div style="font-size: 11px; color: var(--text-muted); line-height: 1.6;">
+            • <strong>화면 드래그</strong>: 마우스/터치 지점으로 스타일러스 실시간 추적 드로잉<br>
+            • <strong>3D 백색 노브</strong>: 노브 중심을 기준으로 마우스를 돌리면 실제 원형 각도 회전<br>
+            • <strong>빨간 본체 드래그</strong>: 장난감을 잡고 흔들어 비즈를 교반하고 화면 지우기<br>
+            • <strong>키보드 WASD / 방향키</strong>: 이동 관성 물리 기반의 연속선
           </div>
         </div>
       </div>
@@ -576,8 +678,12 @@
           </div>
           <table class="telemetry-table">
             <tr>
-              <td class="td-key">스타일러스 2D 좌표</td>
-              <td class="td-val" id="hudCoord">512, 384</td>
+              <td class="td-key">스타일러스 좌표 (Vector)</td>
+              <td class="td-val" id="hudCoord">512.0, 384.0</td>
+            </tr>
+            <tr>
+              <td class="td-key">이동 관성 속도 (Velocity)</td>
+              <td class="td-val green" id="hudSpeed">0.0 px/s</td>
             </tr>
             <tr>
               <td class="td-key">좌/우 다이얼 회전각</td>
@@ -588,16 +694,12 @@
               <td class="td-val gold" id="hudScraped">0.00%</td>
             </tr>
             <tr>
+              <td class="td-key">무한 해상도 벡터 세그먼트</td>
+              <td class="td-val" id="hudSegments">0 pts</td>
+            </tr>
+            <tr>
               <td class="td-key">와이어 케이블 장력</td>
               <td class="td-val green">0.42 N (정상)</td>
-            </tr>
-            <tr>
-              <td class="td-key">인청동 판스프링 하중</td>
-              <td class="td-val">0.35 N</td>
-            </tr>
-            <tr>
-              <td class="td-key">소다라임 유리 굴절률</td>
-              <td class="td-val">n = 1.52 (2.5mm)</td>
             </tr>
           </table>
         </div>
@@ -623,18 +725,18 @@
 
         <div class="control-card">
           <div class="card-title">
-            <span>로컬 사진/스케치 오일러 변환기</span>
+            <span>고급 이미지 오일러 플로터 (Etchbot)</span>
           </div>
           <input type="file" id="fileImageInput" accept="image/*" style="font-size:11px; color:#cbd5e1;">
           <select id="selScreentoneMode" style="margin-top: 4px;">
-            <option value="boustrophedon">부스트로페돈 해칭 (Void-Avoiding)</option>
+            <option value="etchbot_tsp" selected>⭐ Etchbot TSP 윤곽 순회 (Bosch 2-Opt)</option>
+            <option value="boustrophedon">부스트로페돈 해칭 (종횡비 보존)</option>
             <option value="dot">도트 매트릭스 하프톤</option>
             <option value="line">라인 스크린톤</option>
             <option value="crosshatch">크로스 해칭</option>
-            <option value="bayer">베이어 규칙적 디더링</option>
           </select>
           <div style="font-size: 11px; color: var(--text-dim); line-height: 1.4;">
-            * `light-screentone` 엔진이 여백 침범 없이 단일 획(Pen Lifts: 0)으로 자동 변환합니다.
+            * 어떤 해상도/종횡비의 이미지도 화면에 맞춰 비율 왜곡 없이 레터박스 자동 정렬되며, 100% 무절단(Pen Lifts: 0) 오일러 경로를 생성합니다.
           </div>
         </div>
 
@@ -644,18 +746,18 @@
           </div>
           <div class="field-row">
             <span>가이드 로드 십자 투과 음영</span>
-            <span class="field-val" id="lblCrosshair">ON</span>
+            <span class="field-val" id="lblCrosshair">OFF (은은함)</span>
           </div>
           <select id="selCrosshair">
-            <option value="1" selected>특허 실물 광학 간섭 (Crosshair Active)</option>
-            <option value="0">이상적 무간섭 화면 (Ideal Clear)</option>
+            <option value="0" selected>기본 최소화 (그림 가림 방지)</option>
+            <option value="1">특허 실물 광학 간섭 (Crosshair Active)</option>
           </select>
 
           <div class="field-row" style="margin-top:6px;">
             <span>알루미늄 분말 둔덕(버) 융기</span>
-            <span class="field-val" id="lblBurr">55.0</span>
+            <span class="field-val" id="lblBurr">50.0</span>
           </div>
-          <input type="range" id="sliderBurr" min="0" max="100" value="55" step="1">
+          <input type="range" id="sliderBurr" min="0" max="100" value="50" step="1">
 
           <div class="field-row" style="margin-top:6px;">
             <span>아날로그 손떨림 & 백래시 보정</span>
@@ -671,8 +773,8 @@
     </div>
   </div>
 
-  <!-- Bottom Floating Minimalist Dock -->
-  <div class="bottom-dock">
+  <!-- Bottom Floating Minimalist Dock (Dev Mode) -->
+  <div class="bottom-dock dev-ui-element">
     <button class="dock-btn" id="btnViewFront">🔲 정면 뷰</button>
     <button class="dock-btn" id="btnViewIso">📐 아이소메트릭 45°</button>
     <button class="dock-btn" id="btnViewMacro">🔍 스타일러스 접사</button>
@@ -718,20 +820,57 @@
     const PH = pCanvas.height;
 
     const scratchDepth = new Float32Array(PW * PH);
+
+    // Physical Stylus Kinematics with Inertia
     let stylusX = 512.0;
     let stylusY = 384.0;
+    let targetStylusX = 512.0;
+    let targetStylusY = 384.0;
+    let stylusVx = 0.0;
+    let stylusVy = 0.0;
+
     let knobAngleX = 0.0;
     let knobAngleY = 0.0;
 
-    let armShadowOn = true;
-    let burrPower = 55.0;
+    // Optical & Material parameters (Reduced arm shadow by default!)
+    let armShadowOn = false; // Default minimized to avoid obscuring drawings
+    let burrPower = 50.0;
     let glassRefractionOn = true;
     let humanizeOn = true;
     let currentEulerianPath = [];
 
+    // Infinite Resolution Vector Path Buffer
+    const MAX_VECTOR_POINTS = 50000;
+    const vectorPositions = new Float32Array(MAX_VECTOR_POINTS * 3);
+    let vectorPointCount = 0;
+
+    function addVectorPoint(px, py) {
+      if (vectorPointCount >= MAX_VECTOR_POINTS) return;
+      // Convert to 3D local coordinates on screen face (Z = 12.0)
+      const x3d = ((px - PW / 2) / PW) * SCR_W;
+      const y3d = -((py - PH / 2) / PH) * SCR_H + SCR_OFFSET_Y;
+
+      const idx = vectorPointCount * 3;
+      vectorPositions[idx]     = x3d;
+      vectorPositions[idx + 1] = y3d;
+      vectorPositions[idx + 2] = 12.0; // Layer right on glass contact
+      vectorPointCount++;
+
+      if (vectorLineGeo) {
+        vectorLineGeo.attributes.position.needsUpdate = true;
+        vectorLineGeo.setDrawRange(0, vectorPointCount);
+      }
+    }
+
+    function clearVectorPoints() {
+      vectorPointCount = 0;
+      if (vectorLineGeo) vectorLineGeo.setDrawRange(0, 0);
+    }
+
     // Reset powder to clean aluminum
     function resetPowderBuffer() {
       scratchDepth.fill(0);
+      clearVectorPoints();
       renderPowderScreen();
       if (screenTexture) screenTexture.needsUpdate = true;
       updateTelemetryHUD();
@@ -765,6 +904,7 @@
 
       stylusX = x2;
       stylusY = y2;
+      addVectorPoint(x2, y2);
     }
 
     // Render the physical powder canvas
@@ -778,15 +918,18 @@
       const rodIx = Math.floor(stylusX);
       const rodIy = Math.floor(stylusY);
 
+      // Subtle shadow factor (0.02 when ON, 0 when OFF)
+      const shadowFactor = armShadowOn ? 0.025 : 0.0;
+
       for (let y = 0; y < PH; y++) {
         const rowOff = y * PW;
         const dy = Math.abs(y - rodIy);
-        const shadowY = armShadowOn ? Math.max(0, 1.0 - dy / 20.0) * 0.13 : 0;
+        const shadowY = shadowFactor > 0 ? Math.max(0, 1.0 - dy / 20.0) * shadowFactor : 0;
 
         for (let x = 0; x < PW; x++) {
           const idx = (rowOff + x) * 4;
           const dx = Math.abs(x - rodIx);
-          const shadowX = armShadowOn ? Math.max(0, 1.0 - dx / 20.0) * 0.13 : 0;
+          const shadowX = shadowFactor > 0 ? Math.max(0, 1.0 - dx / 20.0) * shadowFactor : 0;
           const crossShadow = shadowX + shadowY;
 
           const depth = scratchDepth[rowOff + x];
@@ -795,19 +938,19 @@
             let rCav = 28, gCav = 26, bCav = 25;
 
             // Rod reflections through trench
-            if (dx < 7) {
-              const spec = (1.0 - dx / 7.0);
+            if (dx < 6) {
+              const spec = (1.0 - dx / 6.0);
               rCav = 115 + spec * 75;
               gCav = 120 + spec * 75;
               bCav = 128 + spec * 75;
-            } else if (dy < 7) {
-              const spec = (1.0 - dy / 7.0);
+            } else if (dy < 6) {
+              const spec = (1.0 - dy / 6.0);
               rCav = 110 + spec * 75;
               gCav = 115 + spec * 75;
               bCav = 122 + spec * 75;
             }
 
-            if (dx < 14 && dy < 14) {
+            if (dx < 12 && dy < 12) {
               rCav = 185; gCav = 150; bCav = 50; // Brass carriage
             }
 
@@ -815,7 +958,7 @@
             data[idx + 1] = gCav * 0.88 + 200 * 0.12;
             data[idx + 2] = bCav * 0.88 + 204 * 0.12;
           } else {
-            const grain = (Math.random() - 0.5) * 6.0;
+            const grain = (Math.random() - 0.5) * 5.0;
             const al = Math.max(0, Math.min(255, (200 + grain) * (1.0 - crossShadow)));
             data[idx]     = al;
             data[idx + 1] = al;
@@ -827,22 +970,22 @@
       pCtx.putImageData(imgData, 0, 0);
 
       // Glass inner frame shadow
-      const gTop = pCtx.createLinearGradient(0, 0, 0, 22);
-      gTop.addColorStop(0, 'rgba(30,32,38,0.55)');
+      const gTop = pCtx.createLinearGradient(0, 0, 0, 20);
+      gTop.addColorStop(0, 'rgba(30,32,38,0.50)');
       gTop.addColorStop(1, 'rgba(30,32,38,0)');
       pCtx.fillStyle = gTop;
-      pCtx.fillRect(0, 0, PW, 22);
+      pCtx.fillRect(0, 0, PW, 20);
 
-      const gLeft = pCtx.createLinearGradient(0, 0, 22, 0);
-      gLeft.addColorStop(0, 'rgba(30,32,38,0.55)');
+      const gLeft = pCtx.createLinearGradient(0, 0, 20, 0);
+      gLeft.addColorStop(0, 'rgba(30,32,38,0.50)');
       gLeft.addColorStop(1, 'rgba(30,32,38,0)');
       pCtx.fillStyle = gLeft;
-      pCtx.fillRect(0, 0, 22, PH);
+      pCtx.fillRect(0, 0, 20, PH);
 
       if (glassRefractionOn) {
         const diag = pCtx.createLinearGradient(0, 0, PW, PH);
         diag.addColorStop(0.32, 'rgba(255,255,255,0)');
-        diag.addColorStop(0.39, 'rgba(255,255,255,0.08)');
+        diag.addColorStop(0.39, 'rgba(255,255,255,0.06)');
         diag.addColorStop(0.46, 'rgba(255,255,255,0)');
         pCtx.fillStyle = diag;
         pCtx.fillRect(0, 0, PW, PH);
@@ -850,11 +993,11 @@
 
       // Stylus tip contact indicator
       pCtx.beginPath();
-      pCtx.arc(stylusX, stylusY, 4, 0, Math.PI * 2);
+      pCtx.arc(stylusX, stylusY, 3.5, 0, Math.PI * 2);
       pCtx.fillStyle = '#222';
       pCtx.fill();
       pCtx.strokeStyle = 'rgba(255,255,255,0.85)';
-      pCtx.lineWidth = 1.5;
+      pCtx.lineWidth = 1.2;
       pCtx.stroke();
     }
 
@@ -956,7 +1099,7 @@
       metalness: 0.02
     });
 
-    // 1. Top Chassis
+    // 1. Top Red Chassis
     const topShape = new THREE.Shape();
     const cr = 18;
     topShape.moveTo(-tw2 + cr, -th2);
@@ -1033,6 +1176,19 @@
     screenMesh.position.set(0, SCR_OFFSET_Y, 11.8);
     layerScreen.add(screenMesh);
 
+    // [INFINITE RESOLUTION] Vector Line Mesh directly on glass reverse face (Z = 12.0)
+    const vectorLineGeo = new THREE.BufferGeometry();
+    vectorLineGeo.setAttribute('position', new THREE.BufferAttribute(vectorPositions, 3));
+    vectorLineGeo.setDrawRange(0, 0);
+    const vectorLineMat = new THREE.LineBasicMaterial({
+      color: 0x1f1e1d,
+      linewidth: 2,
+      transparent: true,
+      opacity: 0.95
+    });
+    const vectorLineMesh = new THREE.Line(vectorLineGeo, vectorLineMat);
+    layerScreen.add(vectorLineMesh);
+
     // 4. US Patent 3,055,113 Guide Rods & Carriage (Z = 5)
     const vertRodGeo = new THREE.CylinderGeometry(1.6, 1.6, SCR_H + 30, 16);
     const vertRodMesh = new THREE.Mesh(vertRodGeo, steelMat);
@@ -1056,7 +1212,7 @@
     stylusMesh.position.set(0, SCR_OFFSET_Y, 9.8);
     layerMechanics.add(stylusMesh);
 
-    // Wire Cables & 4 Corner Pulleys
+    // Corner Pulleys & Cables
     const cableMat = new THREE.LineBasicMaterial({ color: 0x475569 });
     const cablePts = [
       new THREE.Vector3(-sw2 - 6, -sh2 + SCR_OFFSET_Y - 6, 3),
@@ -1179,8 +1335,11 @@
       document.getElementById('sliderDialX').value = Math.round(stylusX);
       document.getElementById('sliderDialY').value = Math.round(stylusY);
 
-      document.getElementById('hudCoord').textContent = `${stylusX.toFixed(0)}, ${stylusY.toFixed(0)}`;
+      document.getElementById('hudCoord').textContent = `${stylusX.toFixed(1)}, ${stylusY.toFixed(1)}`;
+      const currentSpeed = Math.hypot(stylusVx, stylusVy);
+      document.getElementById('hudSpeed').textContent = `${currentSpeed.toFixed(1)} px/s`;
       document.getElementById('hudKnobs').textContent = `${(knobAngleX % 360).toFixed(0)}°, ${(knobAngleY % 360).toFixed(0)}°`;
+      document.getElementById('hudSegments').textContent = `${vectorPointCount} pts (Vector)`;
 
       let scrapedCount = 0;
       const step = 8;
@@ -1192,79 +1351,175 @@
     }
 
     // =========================================================================
-    // 3. Direct Mouse/Touch 3D Knob Dragging Interaction
+    // 3. Tactile 4-Zone Context-Aware Drag Interaction Engine
+    //    Zone 1: Screen -> Direct drawing
+    //    Zone 2: Knobs  -> Circular rotational turning
+    //    Zone 3: Frame  -> Shake toy & erase powder
+    //    Zone 4: Empty  -> OrbitControls 3D camera
     // =========================================================================
     const raycaster = new THREE.Raycaster();
     const mouseCoord = new THREE.Vector2();
-    let draggedKnob = null; // 'left' | 'right'
-    let lastDragPos = { x: 0, y: 0 };
+
+    let currentInteraction = null; // 'screen' | 'knob_left' | 'knob_right' | 'chassis'
+    let lastKnobCenter = { x: 0, y: 0 };
+    let lastKnobAngle = 0;
+    let lastChassisPos = { x: 0, y: 0 };
+    let chassisVelocitySum = 0;
+
+    function getKnobScreenCenter(knobObj) {
+      const v = new THREE.Vector3();
+      knobObj.getWorldPosition(v);
+      v.project(camera);
+      return {
+        x: (v.x * 0.5 + 0.5) * window.innerWidth,
+        y: (-(v.y * 0.5) + 0.5) * window.innerHeight
+      };
+    }
 
     window.addEventListener('pointerdown', (e) => {
       // Ignore clicks on HTML UI elements
-      if (e.target.closest('#studioSidebar') || e.target.closest('header') || e.target.closest('.bottom-dock') || e.target.closest('.modal-overlay')) {
+      if (e.target.closest('#studioSidebar') || e.target.closest('header') || e.target.closest('.bottom-dock') || e.target.closest('.modal-overlay') || e.target.closest('.dev-toggle-pill')) {
         return;
       }
+
+      // Hide onboarding hint on first interaction
+      document.getElementById('onboardingHint').classList.add('fade-out');
 
       mouseCoord.x = (e.clientX / window.innerWidth) * 2 - 1;
       mouseCoord.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
       raycaster.setFromCamera(mouseCoord, camera);
-      const hits = raycaster.intersectObjects([knobLeft, knobRight], true);
 
-      if (hits.length > 0) {
-        let obj = hits[0].object;
+      // Check Knobs First
+      const knobHits = raycaster.intersectObjects([knobLeft, knobRight], true);
+      if (knobHits.length > 0) {
+        let obj = knobHits[0].object;
         while (obj.parent && obj !== knobLeft && obj !== knobRight) {
           obj = obj.parent;
         }
         if (obj === knobLeft) {
-          draggedKnob = 'left';
+          currentInteraction = 'knob_left';
           controls.enabled = false;
-          lastDragPos = { x: e.clientX, y: e.clientY };
+          lastKnobCenter = getKnobScreenCenter(knobLeft);
+          lastKnobAngle = Math.atan2(e.clientY - lastKnobCenter.y, e.clientX - lastKnobCenter.x);
+          return;
         } else if (obj === knobRight) {
-          draggedKnob = 'right';
+          currentInteraction = 'knob_right';
           controls.enabled = false;
-          lastDragPos = { x: e.clientX, y: e.clientY };
+          lastKnobCenter = getKnobScreenCenter(knobRight);
+          lastKnobAngle = Math.atan2(e.clientY - lastKnobCenter.y, e.clientX - lastKnobCenter.x);
+          return;
+        }
+      }
+
+      // Check Glass Screen for Direct Drawing
+      const screenHits = raycaster.intersectObjects([glassMesh, screenMesh], true);
+      if (screenHits.length > 0) {
+        currentInteraction = 'screen';
+        controls.enabled = false;
+
+        const hitPt = screenHits[0].point;
+        const localX = hitPt.x;
+        const localY = hitPt.y - SCR_OFFSET_Y;
+        const px = ((localX + sw2) / SCR_W) * PW;
+        const py = ((-localY + sh2) / SCR_H) * PH;
+
+        targetStylusX = Math.max(16, Math.min(PW - 16, px));
+        targetStylusY = Math.max(16, Math.min(PH - 16, py));
+        return;
+      }
+
+      // Check Toy Red Casing for Physical Shaking
+      const chassisHits = raycaster.intersectObjects([topMesh, botMesh, goldPlane], true);
+      if (chassisHits.length > 0) {
+        currentInteraction = 'chassis';
+        controls.enabled = false;
+        lastChassisPos = { x: e.clientX, y: e.clientY };
+        chassisVelocitySum = 0;
+        return;
+      }
+
+      // Outside toy: OrbitControls naturally handles camera rotation
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!currentInteraction) return;
+
+      mouseCoord.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouseCoord.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      if (currentInteraction === 'screen') {
+        raycaster.setFromCamera(mouseCoord, camera);
+        // Intersect infinite screen plane at Z = 13.5
+        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -13.5);
+        const intersectPt = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(plane, intersectPt)) {
+          const localX = intersectPt.x;
+          const localY = intersectPt.y - SCR_OFFSET_Y;
+          const px = ((localX + sw2) / SCR_W) * PW;
+          const py = ((-localY + sh2) / SCR_H) * PH;
+
+          targetStylusX = Math.max(16, Math.min(PW - 16, px));
+          targetStylusY = Math.max(16, Math.min(PH - 16, py));
+        }
+      } else if (currentInteraction === 'knob_left') {
+        // True circular rotation of left knob
+        const currentAngle = Math.atan2(e.clientY - lastKnobCenter.y, e.clientX - lastKnobCenter.x);
+        let delta = currentAngle - lastKnobAngle;
+        if (delta > Math.PI) delta -= Math.PI * 2;
+        else if (delta < -Math.PI) delta += Math.PI * 2;
+        lastKnobAngle = currentAngle;
+
+        // Circular rotation drives horizontal X
+        const deltaX = delta * (PW / (Math.PI * 2.2));
+        targetStylusX = Math.max(16, Math.min(PW - 16, targetStylusX + deltaX));
+      } else if (currentInteraction === 'knob_right') {
+        // True circular rotation of right knob
+        const currentAngle = Math.atan2(e.clientY - lastKnobCenter.y, e.clientX - lastKnobCenter.x);
+        let delta = currentAngle - lastKnobAngle;
+        if (delta > Math.PI) delta -= Math.PI * 2;
+        else if (delta < -Math.PI) delta += Math.PI * 2;
+        lastKnobAngle = currentAngle;
+
+        // Circular rotation drives vertical Y
+        const deltaY = delta * (PH / (Math.PI * 2.2));
+        targetStylusY = Math.max(16, Math.min(PH - 16, targetStylusY + deltaY));
+      } else if (currentInteraction === 'chassis') {
+        // Dragging toy frame shakes the toy!
+        const dx = e.clientX - lastChassisPos.x;
+        const dy = e.clientY - lastChassisPos.y;
+        lastChassisPos = { x: e.clientX, y: e.clientY };
+
+        const moveSpeed = Math.hypot(dx, dy);
+        chassisVelocitySum += moveSpeed;
+
+        rootAssembly.position.x = Math.max(-45, Math.min(45, rootAssembly.position.x + dx * 0.4));
+        rootAssembly.position.y = Math.max(-35, Math.min(35, rootAssembly.position.y - dy * 0.4));
+        rootAssembly.rotation.z = Math.max(-0.25, Math.min(0.25, rootAssembly.rotation.z + dx * 0.002));
+
+        if (chassisVelocitySum > 90 || moveSpeed > 18) {
+          startShakeAnimation();
+          chassisVelocitySum = 0;
         }
       }
     });
 
-    window.addEventListener('pointermove', (e) => {
-      if (!draggedKnob) return;
-
-      const dx = e.clientX - lastDragPos.x;
-      const dy = e.clientY - lastDragPos.y;
-      lastDragPos = { x: e.clientX, y: e.clientY };
-
-      if (draggedKnob === 'left') {
-        const moveX = dx * 1.8;
-        const nextX = Math.max(16, Math.min(PW - 16, stylusX + moveX));
-        scratchSegment(stylusX, stylusY, nextX, stylusY);
-        renderPowderScreen();
-        if (screenTexture) screenTexture.needsUpdate = true;
-        updateTelemetryHUD();
-      } else if (draggedKnob === 'right') {
-        const moveY = dy * 1.8;
-        const nextY = Math.max(16, Math.min(PH - 16, stylusY + moveY));
-        scratchSegment(stylusX, stylusY, stylusX, nextY);
-        renderPowderScreen();
-        if (screenTexture) screenTexture.needsUpdate = true;
-        updateTelemetryHUD();
-      }
-    });
-
     window.addEventListener('pointerup', () => {
-      if (draggedKnob) {
-        draggedKnob = null;
-        controls.enabled = true;
+      if (currentInteraction === 'chassis') {
+        // Ease back to center
+        rootAssembly.position.set(0, 0, 0);
+        rootAssembly.rotation.set(0, 0, 0);
       }
+      currentInteraction = null;
+      controls.enabled = true;
     });
 
     // =========================================================================
     // 4. Bulletproof 60 FPS Keyboard Control (Bug Fix & Orthogonal Lock)
     // =========================================================================
     const activeKeys = new Set();
-    let orthogonalLock = true; // Prevents accidental diagonal skew!
-    let lastPressedAxis = 'x'; // 'x' | 'y'
+    let orthogonalLock = true;
+    let lastPressedAxis = 'x';
 
     const NAV_KEYS = new Set([
       'KeyW', 'KeyA', 'KeyS', 'KeyD',
@@ -1272,9 +1527,14 @@
     ]);
 
     window.addEventListener('keydown', (e) => {
+      // Toggle Dev Mode with 'KeyD' or '~' when not drawing with D
+      if (e.key === '`' || e.key === '~' || (e.code === 'KeyD' && e.ctrlKey)) {
+        toggleDevMode();
+        return;
+      }
+
       if (NAV_KEYS.has(e.code)) {
         e.preventDefault();
-        // Blur any focused form inputs so arrow keys never conflict
         if (document.activeElement && document.activeElement.tagName !== 'BODY') {
           document.activeElement.blur();
         }
@@ -1286,6 +1546,7 @@
         }
 
         activeKeys.add(e.code);
+        document.getElementById('onboardingHint').classList.add('fade-out');
       }
     });
 
@@ -1296,7 +1557,6 @@
       }
     });
 
-    // Immediate cleanup on focus loss or window blur
     window.addEventListener('blur', () => activeKeys.clear());
     window.addEventListener('focus', () => activeKeys.clear());
     document.addEventListener('visibilitychange', () => {
@@ -1309,7 +1569,7 @@
 
       let vx = 0;
       let vy = 0;
-      const speed = 4.2;
+      const speed = 5.2;
 
       const left  = activeKeys.has('ArrowLeft')  || activeKeys.has('KeyA');
       const right = activeKeys.has('ArrowRight') || activeKeys.has('KeyD');
@@ -1322,25 +1582,17 @@
       if (up && !down) vy = -speed;
       else if (down && !up) vy = speed;
 
-      // Orthogonal Lock: guarantees pure horizontal or vertical lines without diagonal slips
       if (orthogonalLock && vx !== 0 && vy !== 0) {
         if (lastPressedAxis === 'y') vx = 0;
         else vy = 0;
       }
 
-      if (vx !== 0 || vy !== 0) {
-        const nextX = Math.max(16, Math.min(PW - 16, stylusX + vx));
-        const nextY = Math.max(16, Math.min(PH - 16, stylusY + vy));
-
-        scratchSegment(stylusX, stylusY, nextX, nextY);
-        renderPowderScreen();
-        if (screenTexture) screenTexture.needsUpdate = true;
-        updateTelemetryHUD();
-      }
+      targetStylusX = Math.max(16, Math.min(PW - 16, targetStylusX + vx));
+      targetStylusY = Math.max(16, Math.min(PH - 16, targetStylusY + vy));
     }
 
     // =========================================================================
-    // 5. Classic Art Presets & Eulerian Vector Plotter
+    // 5. Classic Art Presets & Etchbot TSP Vector Plotter
     // =========================================================================
     function drawArtPreset(presetKey) {
       resetPowderBuffer();
@@ -1361,24 +1613,24 @@
         const w = 290, h = 180;
         path.push(
           { x: cx - w/2, y: cy },
-          { x: cx + w/2, y: cy },          // Base
-          { x: cx + w/2, y: cy - h },      // Right wall
-          { x: cx - w/2, y: cy - h },      // Ceiling
-          { x: cx, y: cy - h - 100 },      // Roof Peak
-          { x: cx + w/2, y: cy - h },      // Roof Right
-          { x: cx - w/2, y: cy },          // Cross brace 1
-          { x: cx - w/2, y: cy - h },      // Left wall
-          { x: cx + w/2, y: cy },          // Cross brace 2
+          { x: cx + w/2, y: cy },
+          { x: cx + w/2, y: cy - h },
+          { x: cx - w/2, y: cy - h },
+          { x: cx, y: cy - h - 100 },
+          { x: cx + w/2, y: cy - h },
+          { x: cx - w/2, y: cy },
+          { x: cx - w/2, y: cy - h },
+          { x: cx + w/2, y: cy },
           { x: cx + 70, y: cy },
-          { x: cx + 70, y: cy - 90 },      // Door
+          { x: cx + 70, y: cy - 90 },
           { x: cx + 20, y: cy - 90 },
           { x: cx + 20, y: cy },
-          { x: cx - 60, y: cy - 60 },      // Window
+          { x: cx - 60, y: cy - 60 },
           { x: cx - 110, y: cy - 60 },
           { x: cx - 110, y: cy - 110 },
           { x: cx - 60, y: cy - 110 },
           { x: cx - 60, y: cy - 60 },
-          { x: cx + 80, y: cy - h - 40 },  // Chimney
+          { x: cx + 80, y: cy - h - 40 },
           { x: cx + 80, y: cy - h - 110 },
           { x: cx + 110, y: cy - h - 110 },
           { x: cx + 110, y: cy - h - 15 }
@@ -1400,14 +1652,14 @@
 
         tCtx.fillStyle = '#ffffff'; tCtx.fillRect(0,0,160,120);
         tCtx.fillStyle = '#000000';
-        tCtx.beginPath(); tCtx.arc(80, 50, 32, 0, Math.PI*2); tCtx.fill(); // Head
-        tCtx.beginPath(); tCtx.ellipse(80, 100, 50, 35, 0, 0, Math.PI*2); tCtx.fill(); // Shoulders
+        tCtx.beginPath(); tCtx.arc(80, 50, 32, 0, Math.PI*2); tCtx.fill();
+        tCtx.beginPath(); tCtx.ellipse(80, 100, 50, 35, 0, 0, Math.PI*2); tCtx.fill();
         tCtx.fillStyle = '#ffffff';
-        tCtx.beginPath(); tCtx.ellipse(80, 50, 18, 22, 0, 0, Math.PI*2); tCtx.fill(); // Face highlight
+        tCtx.beginPath(); tCtx.ellipse(80, 50, 18, 22, 0, 0, Math.PI*2); tCtx.fill();
         tCtx.fillStyle = '#000000';
-        tCtx.beginPath(); tCtx.ellipse(74, 46, 3, 2, 0, 0, Math.PI*2); tCtx.fill(); // Eyes
+        tCtx.beginPath(); tCtx.ellipse(74, 46, 3, 2, 0, 0, Math.PI*2); tCtx.fill();
         tCtx.beginPath(); tCtx.ellipse(86, 46, 3, 2, 0, 0, Math.PI*2); tCtx.fill();
-        tCtx.beginPath(); tCtx.arc(80, 56, 5, 0.2, Math.PI - 0.2); tCtx.stroke(); // Smile
+        tCtx.beginPath(); tCtx.arc(80, 56, 5, 0.2, Math.PI - 0.2); tCtx.stroke();
 
         const tData = tCtx.getImageData(0,0,160,120).data;
         const ePath = LightScreentone.generateEulerianHatch(PW, PH, (px, py) => {
@@ -1424,12 +1676,14 @@
         scratchSegment(path[i].x, path[i].y, path[i+1].x, path[i+1].y);
       }
 
+      targetStylusX = stylusX;
+      targetStylusY = stylusY;
       renderPowderScreen();
       if (screenTexture) screenTexture.needsUpdate = true;
       updateTelemetryHUD();
     }
 
-    // Convert uploaded image
+    // Convert uploaded image with Aspect-Ratio Preservation & Etchbot TSP
     document.getElementById('fileImageInput').onchange = (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -1437,30 +1691,67 @@
       reader.onload = (evt) => {
         const img = new Image();
         img.onload = () => {
-          const tCan = document.createElement('canvas');
-          tCan.width = 160; tCan.height = 120;
-          const tCtx = tCan.getContext('2d');
-          tCtx.drawImage(img, 0, 0, 160, 120);
-          const tData = tCtx.getImageData(0, 0, 160, 120).data;
-
           resetPowderBuffer();
-          const mode = document.getElementById('selScreentoneMode').value;
-          const pat = (mode === 'boustrophedon') ? 'line' : mode;
 
-          const ePath = LightScreentone.generateEulerianHatch(PW, PH, (px, py) => {
-            const ix = Math.min(Math.max(Math.floor((px / PW) * 160), 0), 159);
-            const iy = Math.min(Math.max(Math.floor((py / PH) * 120), 0), 119);
-            const r = tData[(iy * 160 + ix) * 4];
-            const g = tData[(iy * 160 + ix) * 4 + 1];
-            const b = tData[(iy * 160 + ix) * 4 + 2];
-            const intensity = (0.2126*r + 0.7152*g + 0.0722*b) / 255.0;
-            return LightScreentone.screentone(px, py, intensity, { pattern: pat, frequency: 8 });
-          }, { step: 8, threshold: 0.5, humanize: humanizeOn });
+          // Letterbox aspect ratio fit
+          const maxDim = 240;
+          const scale = Math.min(maxDim / img.width, maxDim / img.height);
+          const fitW = Math.max(32, Math.round(img.width * scale));
+          const fitH = Math.max(32, Math.round(img.height * scale));
+
+          const tCan = document.createElement('canvas');
+          tCan.width = fitW;
+          tCan.height = fitH;
+          const tCtx = tCan.getContext('2d');
+          tCtx.fillStyle = '#ffffff';
+          tCtx.fillRect(0, 0, fitW, fitH);
+          tCtx.drawImage(img, 0, 0, fitW, fitH);
+          const imgData = tCtx.getImageData(0, 0, fitW, fitH);
+
+          const mode = document.getElementById('selScreentoneMode').value;
+          let ePath = [];
+
+          if (mode === 'etchbot_tsp') {
+            // [ETCHBOT TSP MODE]
+            ePath = LightScreentone.generateEtchbotTSP(PW, PH, imgData, {
+              maxPoints: 950,
+              threshold: 0.40,
+              optIterations: 45,
+              margin: 32,
+              humanize: humanizeOn
+            });
+          } else {
+            // Screen Tone Hatching with Aspect-Ratio Preserved Centering
+            const tData = imgData.data;
+            const pat = (mode === 'boustrophedon') ? 'line' : mode;
+
+            // Offset bounds in PW x PH
+            const offX = Math.round((PW - fitW * (PW / maxDim)) / 2);
+            const offY = Math.round((PH - fitH * (PH / maxDim)) / 2);
+
+            ePath = LightScreentone.generateEulerianHatch(PW, PH, (px, py) => {
+              const ix = Math.min(Math.max(Math.floor(((px - offX) / (PW - offX * 2)) * fitW), 0), fitW - 1);
+              const iy = Math.min(Math.max(Math.floor(((py - offY) / (PH - offY * 2)) * fitH), 0), fitH - 1);
+
+              if (px < offX || px > PW - offX || py < offY || py > PH - offY) {
+                return 1.0; // White border outside image
+              }
+
+              const r = tData[(iy * fitW + ix) * 4];
+              const g = tData[(iy * fitW + ix) * 4 + 1];
+              const b = tData[(iy * fitW + ix) * 4 + 2];
+              const intensity = (0.2126*r + 0.7152*g + 0.0722*b) / 255.0;
+              return LightScreentone.screentone(px, py, intensity, { pattern: pat, frequency: 8 });
+            }, { step: 8, threshold: 0.5, humanize: humanizeOn });
+          }
 
           currentEulerianPath = ePath;
           for (let i = 0; i < ePath.length - 1; i++) {
             scratchSegment(ePath[i].x, ePath[i].y, ePath[i+1].x, ePath[i+1].y);
           }
+
+          targetStylusX = stylusX;
+          targetStylusY = stylusY;
           renderPowderScreen();
           if (screenTexture) screenTexture.needsUpdate = true;
           updateTelemetryHUD();
@@ -1494,14 +1785,13 @@
     // =========================================================================
     let isShaking = false;
     let shakeStartTime = 0;
-    const SHAKE_DURATION = 1500; // 1.5s damped physical rocking
+    const SHAKE_DURATION = 1500;
 
     function startShakeAnimation() {
       if (isShaking) return;
       isShaking = true;
       shakeStartTime = performance.now();
 
-      // Launch beads violently upward with dynamic variance
       for (const bp of beadsPhysics) {
         bp.vx = (Math.random() - 0.5) * 480;
         bp.vy = 260 + Math.random() * 520;
@@ -1514,8 +1804,19 @@
     document.getElementById('btnResetPowder').onclick = resetPowderBuffer;
 
     // =========================================================================
-    // 7. UI Controls, Sliders & Tab Handlers
+    // 7. DEV Mode & UI Handlers
     // =========================================================================
+    let devModeActive = false;
+
+    function toggleDevMode() {
+      devModeActive = !devModeActive;
+      document.body.classList.toggle('dev-mode', devModeActive);
+      document.getElementById('btnToggleDevMode').classList.toggle('active', devModeActive);
+      document.getElementById('onboardingHint').classList.add('fade-out');
+    }
+
+    document.getElementById('btnToggleDevMode').onclick = toggleDevMode;
+
     // Sidebar Tabs
     document.querySelectorAll('.nav-btn').forEach(btn => {
       btn.onclick = () => {
@@ -1533,8 +1834,6 @@
           plotter: '🎨 오일러 벡터 플로터'
         };
         document.getElementById('sidebarTitle').textContent = titles[tab];
-
-        // Ensure sidebar is open when switching tabs
         document.getElementById('studioSidebar').classList.remove('collapsed');
 
         if (tab === 'cutaway') {
@@ -1549,7 +1848,6 @@
       };
     });
 
-    // Sidebar Toggle
     document.getElementById('btnToggleSidebar').onclick = () => {
       document.getElementById('studioSidebar').classList.toggle('collapsed');
     };
@@ -1557,7 +1855,6 @@
       document.getElementById('studioSidebar').classList.add('collapsed');
     };
 
-    // Orthogonal Lock Mode Switches
     function setOrthoMode(locked) {
       orthogonalLock = locked;
       document.getElementById('btnModeOrtho').classList.toggle('active', locked);
@@ -1574,16 +1871,10 @@
     const sliderDialX = document.getElementById('sliderDialX');
     const sliderDialY = document.getElementById('sliderDialY');
     sliderDialX.oninput = () => {
-      scratchSegment(stylusX, stylusY, parseFloat(sliderDialX.value), stylusY);
-      renderPowderScreen();
-      if (screenTexture) screenTexture.needsUpdate = true;
-      updateTelemetryHUD();
+      targetStylusX = parseFloat(sliderDialX.value);
     };
     sliderDialY.oninput = () => {
-      scratchSegment(stylusX, stylusY, stylusX, parseFloat(sliderDialY.value));
-      renderPowderScreen();
-      if (screenTexture) screenTexture.needsUpdate = true;
-      updateTelemetryHUD();
+      targetStylusY = parseFloat(sliderDialY.value);
     };
 
     const sliderExplode = document.getElementById('sliderExplode');
@@ -1616,15 +1907,13 @@
       controls.target.set(x3d, y3d, 12);
     };
 
-    // Preset Rendering Button
     document.getElementById('btnDrawPreset').onclick = () => {
       drawArtPreset(document.getElementById('selArtPreset').value);
     };
 
-    // Physics Toggles
     document.getElementById('selCrosshair').onchange = (e) => {
       armShadowOn = e.target.value === '1';
-      document.getElementById('lblCrosshair').textContent = armShadowOn ? 'ON' : 'OFF';
+      document.getElementById('lblCrosshair').textContent = armShadowOn ? 'ON' : 'OFF (은은함)';
       renderPowderScreen();
       if (screenTexture) screenTexture.needsUpdate = true;
     };
@@ -1663,36 +1952,65 @@
       controls.target.set(0, -sh2 + SCR_OFFSET_Y, -75 * 0.65);
     };
 
-    // Docs Modal
     document.getElementById('btnOpenDocs').onclick = () => document.getElementById('modalDocs').classList.add('open');
     document.getElementById('btnDocsClose').onclick = () => document.getElementById('modalDocs').classList.remove('open');
 
-    // Resize
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
+    // Auto fade hint after 5 seconds
+    setTimeout(() => {
+      const hint = document.getElementById('onboardingHint');
+      if (hint) hint.classList.add('fade-out');
+    }, 5000);
+
     // =========================================================================
-    // 8. 60 FPS Main Animation Loop (Kinematics + Bead Physics)
+    // 8. 60 FPS Main Animation Loop (Kinematics with Inertia + Bead Physics)
     // =========================================================================
     resetPowderBuffer();
     sync3DKinematics();
     updateTelemetryHUD();
 
+    let lastFrameTime = performance.now();
+
     function animate() {
       requestAnimationFrame(animate);
+
+      const now = performance.now();
+      const dt = Math.min(0.033, (now - lastFrameTime) / 1000.0);
+      lastFrameTime = now;
 
       // 1. Continuous Keyboard Input
       handleContinuousKeyboardInput();
 
-      // 2. Realistic Harmonic Shaking Simulation
+      // 2. Stylus Mechanical Movement with Inertia & Spring Damping
+      const springK = 38.0;
+      const damping = 13.5;
+      const ax = (targetStylusX - stylusX) * springK - stylusVx * damping;
+      const ay = (targetStylusY - stylusY) * springK - stylusVy * damping;
+
+      stylusVx += ax * dt;
+      stylusVy += ay * dt;
+
+      const nextX = stylusX + stylusVx * dt;
+      const nextY = stylusY + stylusVy * dt;
+
+      if (Math.hypot(nextX - stylusX, nextY - stylusY) > 0.05) {
+        scratchSegment(stylusX, stylusY, nextX, nextY);
+        renderPowderScreen();
+        if (screenTexture) screenTexture.needsUpdate = true;
+        updateTelemetryHUD();
+      }
+
+      // 3. Realistic Harmonic Shaking Simulation
       let shakeAccX = 0;
       let shakeAccY = 0;
 
       if (isShaking) {
-        const elapsed = performance.now() - shakeStartTime;
+        const elapsed = now - shakeStartTime;
         const progress = Math.min(1.0, elapsed / SHAKE_DURATION);
 
         if (progress >= 1.0) {
@@ -1701,7 +2019,6 @@
           rootAssembly.rotation.set(0, 0, 0);
           resetPowderBuffer();
         } else {
-          // Graceful damped sinusoidal rocking (3 gentle harmonic swings)
           const decay = Math.exp(-progress * 3.2);
           const freq = 16.0;
           const osc = Math.sin(progress * Math.PI * freq) * decay;
@@ -1714,7 +2031,6 @@
           shakeAccX = -osc * 900.0;
           shakeAccY = Math.cos(progress * Math.PI * freq) * decay * 800.0;
 
-          // Progressive powder scratch clearing
           const fade = 0.94;
           for (let i = 0; i < scratchDepth.length; i += 4) {
             scratchDepth[i] *= fade;
@@ -1722,8 +2038,7 @@
         }
       }
 
-      // 3. Dynamic 3D Polystyrene Bead Physics Update
-      const dt = 0.016;
+      // 4. Dynamic 3D Polystyrene Bead Physics Update
       const gravity = -550.0;
       const restitution = 0.52;
       const minX = -sw2 + 4, maxX = sw2 - 4;
@@ -1752,7 +2067,7 @@
         if (bp.y < minY) {
           bp.y = minY;
           bp.vy = -bp.vy * restitution;
-          bp.vx *= 0.88; // friction on bottom ledge
+          bp.vx *= 0.88;
         } else if (bp.y > maxY) {
           bp.y = maxY;
           bp.vy = -bp.vy * restitution;
