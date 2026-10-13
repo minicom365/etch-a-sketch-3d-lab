@@ -712,8 +712,9 @@
             <span>클래식 수학·공학 프리셋</span>
           </div>
           <select id="selArtPreset">
+            <option value="sketch_fox" selected>✒️ 흑백 스케치 마스터피스 (여우귀 소녀 선화 오일러)</option>
             <option value="spirograph">🌀 스파이로그래프 하이포트로코이드</option>
-            <option value="house" selected>🏠 1960년대 클래식 오하이오 아트 하우스</option>
+            <option value="house">🏠 1960년대 클래식 오하이오 아트 하우스</option>
             <option value="monalisa">🖼️ 모나리자 1-라인 윤곽 초상화</option>
             <option value="lissajous">〰️ 리사주 고조파 공명 곡선 (3:4)</option>
           </select>
@@ -738,7 +739,8 @@
             <option value="3200">초고해상도 (Ultra Detail, 3,200 pts)</option>
           </select>
           <select id="selScreentoneMode" style="margin-top: 6px;">
-            <option value="etch_masterpiece" selected>🏆 에치 마스터피스 (ETF 트로코이드 잉크 폐루프 & 스텔스 라우팅)</option>
+            <option value="sketch_masterpiece" selected>✒️ 스케치 선화 마스터피스 (DoG 세선화 위상 스켈레톤 & 오일러 역추적)</option>
+            <option value="etch_masterpiece">🏆 에치 마스터피스 (ETF 트로코이드 잉크 폐루프 & 스텔스 라우팅)</option>
             <option value="etchbot_tsp">⭐ Etchbot TSP 적응형 에러디퓨전 (2-Opt)</option>
             <option value="boustrophedon">부스트로페돈 해칭 (종횡비 보존)</option>
             <option value="dot">도트 매트릭스 하프톤</option>
@@ -1646,6 +1648,22 @@
       resetPowderBuffer();
       const path = [];
 
+      if (presetKey === 'sketch_fox') {
+        fetch('presets/sketch_fox.json')
+          .then(r => r.json())
+          .then(pts => {
+            currentEulerianPath = pts;
+            for (let i = 0; i < pts.length - 1; i++) {
+              scratchSegment(pts[i].x, pts[i].y, pts[i+1].x, pts[i+1].y);
+            }
+            targetStylusX = stylusX;
+            targetStylusY = stylusY;
+            renderPowderScreen();
+          })
+          .catch(err => console.error('Failed to load sketch preset:', err));
+        return;
+      }
+
       if (presetKey === 'spirograph') {
         const cx = PW / 2, cy = PH / 2;
         const R = 210, r = 78, p = 65;
@@ -1760,7 +1778,12 @@
           const maxPts = parseInt(document.getElementById('selPlotterResolution').value, 10) || 2200;
           let ePath = [];
 
-          if (mode === 'etch_masterpiece') {
+          if (mode === 'sketch_masterpiece') {
+            // [SKETCH MASTERPIECE MODE: DoG Morphological Skeleton & Zero-Ghosting Eulerian Retraversal]
+            ePath = LightScreentone.generateSketchPlotterPath(PW, PH, imgData, {
+              humanize: humanizeOn
+            });
+          } else if (mode === 'etch_masterpiece') {
             // [ETCH MASTERPIECE MODE: ETF Trochoid Closed-Loop Ink & Stealth Routing]
             ePath = LightScreentone.generateMasterpiecePlotterPath(PW, PH, imgData, {
               maxPoints: maxPts,
