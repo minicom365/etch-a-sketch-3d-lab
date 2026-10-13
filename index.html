@@ -7,25 +7,27 @@
   <style>
     :root {
       --bg: #090a0f;
-      --card-bg: rgba(18, 20, 26, 0.78);
-      --card-border: rgba(255, 255, 255, 0.08);
-      --card-border-glow: rgba(245, 158, 11, 0.25);
+      --panel-bg: rgba(13, 15, 22, 0.88);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --panel-border-hover: rgba(255, 255, 255, 0.16);
+      --card-bg: rgba(22, 26, 38, 0.6);
       --accent-red: #dc2626;
       --accent-red-hover: #ef4444;
       --gold: #f59e0b;
       --gold-dim: #b45309;
-      --steel: #94a3b8;
+      --emerald: #10b981;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
       --text-dim: #64748b;
-      --emerald: #10b981;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Helvetica Neue", sans-serif;
       --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       background: var(--bg);
       color: var(--text-main);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Helvetica Neue", sans-serif;
+      font-family: var(--font-sans);
       overflow: hidden;
       width: 100vw;
       height: 100vh;
@@ -41,7 +43,7 @@
     }
     #powderCanvas { display: none; }
 
-    /* Top Sleek Navigation Bar */
+    /* Top Studio Header */
     header {
       position: absolute;
       top: 0; left: 0; width: 100%;
@@ -49,47 +51,68 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 28px;
-      background: linear-gradient(180deg, rgba(9,10,15,0.92) 0%, rgba(9,10,15,0.4) 70%, rgba(9,10,15,0) 100%);
+      padding: 16px 24px;
+      background: linear-gradient(180deg, rgba(9,10,15,0.94) 0%, rgba(9,10,15,0.4) 75%, transparent 100%);
       pointer-events: none;
     }
     .header-left, .header-center, .header-right {
       pointer-events: auto;
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
     }
     .brand-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
-      letter-spacing: -0.4px;
+      letter-spacing: -0.3px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       color: #fff;
     }
     .brand-title .gold-txt { color: var(--gold); }
-    .badge-patent {
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      padding: 3px 8px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.28);
+      color: var(--emerald);
+      border-radius: 5px;
+    }
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--emerald);
+      animation: pulseDot 2s infinite ease-in-out;
+    }
+    @keyframes pulseDot {
+      0%, 100% { opacity: 0.5; transform: scale(0.9); }
+      50% { opacity: 1.0; transform: scale(1.15); }
+    }
+    .patent-badge {
       font-size: 11px;
       font-family: var(--font-mono);
       padding: 3px 8px;
       background: rgba(245, 158, 11, 0.12);
-      border: 1px solid rgba(245, 158, 11, 0.35);
+      border: 1px solid rgba(245, 158, 11, 0.3);
       color: var(--gold);
       border-radius: 5px;
-      letter-spacing: 0.2px;
     }
 
-    /* Segmented Navigation Tabs */
+    /* Segmented Navigation */
     .segmented-nav {
       display: flex;
-      background: rgba(22, 25, 34, 0.85);
-      border: 1px solid var(--card-border);
-      border-radius: 9px;
+      background: rgba(20, 24, 34, 0.9);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
       padding: 3px;
       gap: 3px;
       backdrop-filter: blur(20px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
     .nav-btn {
       background: transparent;
@@ -109,37 +132,107 @@
     .nav-btn.active {
       color: #fff;
       background: #b91c1c;
-      box-shadow: 0 2px 10px rgba(185, 28, 28, 0.5);
+      box-shadow: 0 2px 10px rgba(185, 28, 28, 0.45);
     }
 
-    /* Floating Left Inspector Panel */
-    .inspector-panel {
+    .btn-header-action {
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: rgba(30, 36, 50, 0.7);
+      color: #f1f5f9;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-header-action:hover {
+      background: rgba(45, 54, 75, 0.9);
+      border-color: var(--panel-border-hover);
+    }
+
+    /* Unified Right Studio Sidebar */
+    .studio-sidebar {
       position: absolute;
-      top: 80px; left: 28px;
-      width: 340px;
+      top: 76px; right: 24px;
+      width: 370px;
       z-index: 20;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
-      backdrop-filter: blur(24px);
-      padding: 20px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      backdrop-filter: blur(28px);
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      max-height: calc(100vh - 120px);
-      overflow-y: auto;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
+      max-height: calc(100vh - 150px);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.06);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+      overflow: hidden;
     }
-    .inspector-section-header {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: var(--text-dim);
-      font-weight: 700;
+    .studio-sidebar.collapsed {
+      transform: translateX(calc(100% + 30px));
+      opacity: 0;
+      pointer-events: none;
+    }
+    .sidebar-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--panel-border);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(16, 19, 28, 0.6);
+    }
+    .sidebar-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sidebar-close-btn {
+      background: none; border: none;
+      color: var(--text-dim);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      transition: color 0.2s;
+    }
+    .sidebar-close-btn:hover { color: #fff; }
+
+    .sidebar-body {
+      padding: 18px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Section & Cards */
+    .control-card {
+      background: var(--card-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-dim);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
       padding-bottom: 6px;
     }
     .field-group {
@@ -147,12 +240,12 @@
       flex-direction: column;
       gap: 6px;
     }
-    .field-label {
-      font-size: 12px;
-      color: #cbd5e1;
+    .field-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      font-size: 12px;
+      color: #cbd5e1;
     }
     .field-val {
       font-family: var(--font-mono);
@@ -162,33 +255,34 @@
     input[type="range"] {
       width: 100%;
       accent-color: var(--gold);
-      background: #1e222d;
+      background: #181c26;
       height: 5px;
       border-radius: 3px;
       outline: none;
     }
     select {
-      background: #141720;
-      border: 1px solid var(--card-border);
+      background: #12151e;
+      border: 1px solid var(--panel-border);
       color: #fff;
       padding: 8px 12px;
-      border-radius: 7px;
+      border-radius: 8px;
       font-size: 12px;
       outline: none;
       width: 100%;
       transition: border-color 0.2s;
     }
     select:focus { border-color: var(--gold); }
-    .btn-row {
+
+    .btn-grid-2 {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
-    button.btn-action {
-      padding: 9px 12px;
-      border-radius: 7px;
-      border: 1px solid var(--card-border);
-      background: rgba(36, 41, 54, 0.7);
+    button.btn-ctrl {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: rgba(30, 36, 50, 0.7);
       color: #fff;
       font-size: 12px;
       font-weight: 600;
@@ -199,103 +293,73 @@
       gap: 6px;
       transition: all 0.2s;
     }
-    button.btn-action:hover {
-      background: rgba(48, 55, 72, 0.9);
-      border-color: rgba(255,255,255,0.15);
+    button.btn-ctrl:hover {
+      background: rgba(45, 54, 75, 0.9);
+      border-color: var(--panel-border-hover);
     }
-    button.btn-action.red {
+    button.btn-ctrl.red {
       background: #991b1b;
       border-color: #dc2626;
     }
-    button.btn-action.red:hover { background: #b91c1c; }
-    button.btn-action.gold {
+    button.btn-ctrl.red:hover { background: #b91c1c; }
+    button.btn-ctrl.gold {
       background: #92400e;
       border-color: #d97706;
     }
-    button.btn-action.gold:hover { background: #b45309; }
+    button.btn-ctrl.gold:hover { background: #b45309; }
 
-    /* Right Telemetry & Engineering HUD */
-    .hud-panel {
-      position: absolute;
-      top: 80px; right: 28px;
-      width: 320px;
-      z-index: 20;
+    /* Mode Pill Switches (Orthogonal vs Freeform) */
+    .mode-switch-group {
       display: flex;
-      flex-direction: column;
-      gap: 14px;
-      pointer-events: auto;
+      background: rgba(14, 17, 24, 0.85);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
     }
-    .hud-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
-      backdrop-filter: blur(24px);
-      padding: 18px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
-    }
-    .hud-metric-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .mode-switch-btn {
+      flex: 1;
+      padding: 6px 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
       font-size: 11px;
-      padding: 5px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-    }
-    .hud-metric-row:last-child { border-bottom: none; }
-    .hud-key { color: var(--text-muted); }
-    .hud-val {
-      font-family: var(--font-mono);
-      color: #fff;
       font-weight: 600;
-    }
-    .hud-val.green { color: var(--emerald); }
-    .hud-val.gold { color: var(--gold); }
-
-    /* Dial Visualization Widgets in HUD */
-    .dial-visualizer {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid rgba(255,255,255,0.06);
-    }
-    .dial-box {
-      background: rgba(14, 16, 22, 0.6);
-      border: 1px solid var(--card-border);
-      border-radius: 9px;
-      padding: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
       text-align: center;
     }
-    .dial-ring {
-      width: 44px; height: 44px;
-      border-radius: 50%;
-      border: 2px dashed rgba(255,255,255,0.25);
-      margin: 0 auto 6px auto;
-      position: relative;
-      transition: transform 0.1s linear;
-    }
-    .dial-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--accent-red);
-      position: absolute;
-      top: 2px; left: 19px;
-    }
-    .dial-lbl {
-      font-size: 10px;
-      color: var(--text-dim);
-      text-transform: uppercase;
-      font-weight: 600;
-    }
-    .dial-deg {
-      font-size: 12px;
-      font-family: var(--font-mono);
-      color: var(--gold);
-      margin-top: 2px;
+    .mode-switch-btn.active {
+      color: #fff;
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid rgba(245, 158, 11, 0.4);
     }
 
-    /* Bottom Floating Dock */
+    /* Telemetry Data Table */
+    .telemetry-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    .telemetry-table tr {
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .telemetry-table tr:last-child { border-bottom: none; }
+    .telemetry-table td {
+      padding: 6px 0;
+    }
+    .td-key { color: var(--text-muted); }
+    .td-val {
+      text-align: right;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: #fff;
+    }
+    .td-val.green { color: var(--emerald); }
+    .td-val.gold { color: var(--gold); }
+
+    /* Bottom Minimalist Floating Dock */
     .bottom-dock {
       position: absolute;
       bottom: 24px; left: 50%;
@@ -304,18 +368,18 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      background: rgba(18, 20, 26, 0.85);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 6px 10px;
-      backdrop-filter: blur(20px);
-      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+      background: rgba(15, 18, 26, 0.88);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      padding: 6px 12px;
+      backdrop-filter: blur(24px);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.55);
     }
     .dock-btn {
       background: transparent;
       border: none;
       color: var(--text-muted);
-      padding: 8px 12px;
+      padding: 8px 14px;
       font-size: 12px;
       font-weight: 600;
       border-radius: 8px;
@@ -335,25 +399,12 @@
       background: rgba(255,255,255,0.1);
     }
 
-    /* Keyboard Arrow Help Tooltip */
-    .key-indicator {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      padding: 2px 6px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 4px;
-      border: 1px solid rgba(255,255,255,0.12);
-    }
-
-    /* Modal */
+    /* Modal Overlay */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(0,0,0,0.7);
-      backdrop-filter: blur(8px);
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(10px);
       z-index: 100;
       display: none;
       justify-content: center;
@@ -361,13 +412,13 @@
     }
     .modal-overlay.open { display: flex; }
     .modal-dialog {
-      background: #141720;
-      border: 1px solid var(--card-border-glow);
+      background: #12151f;
+      border: 1px solid rgba(245, 158, 11, 0.3);
       border-radius: 16px;
-      width: 620px;
+      width: 640px;
       max-width: 90vw;
       padding: 28px;
-      box-shadow: 0 30px 80px rgba(0,0,0,0.8);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.85);
       position: relative;
     }
     .modal-close-btn {
@@ -382,12 +433,14 @@
       font-size: 18px;
       font-weight: 700;
       color: var(--gold);
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
     .modal-desc {
       font-size: 13px;
-      line-height: 1.65;
+      line-height: 1.7;
       color: #cbd5e1;
+      max-height: 70vh;
+      overflow-y: auto;
     }
   </style>
 </head>
@@ -399,267 +452,253 @@
   <!-- Offscreen 2D Powder Canvas (1024x768) -->
   <canvas id="powderCanvas" width="1024" height="768"></canvas>
 
-  <!-- Top Header -->
+  <!-- Top Studio Header -->
   <header>
     <div class="header-left">
       <div class="brand-title">
         MAGIC <span class="gold-txt">Etch A Sketch</span> 3D LAB
-        <span class="badge-patent">US PAT. 3,055,113</span>
+        <span class="patent-badge">US PAT. 3,055,113</span>
+        <span class="status-badge"><span class="status-dot"></span>60 FPS</span>
       </div>
     </div>
 
     <div class="header-center">
       <div class="segmented-nav">
-        <button class="nav-btn active" data-tab="toy">🎮 인터랙티브 실물</button>
-        <button class="nav-btn" data-tab="cutaway">🔬 기구학 분해·단면도</button>
-        <button class="nav-btn" data-tab="plotter">🎨 클래식 아트 & 플로터</button>
+        <button class="nav-btn active" data-tab="toy">🎮 실물 에뮬레이터</button>
+        <button class="nav-btn" data-tab="cutaway">🔬 기구학 분해도</button>
+        <button class="nav-btn" data-tab="plotter">🎨 오일러 벡터 플로터</button>
       </div>
     </div>
 
     <div class="header-right">
-      <button class="btn-action" id="btnOpenDocs" style="padding: 6px 14px; font-size:12px;">📖 특허 명세서</button>
+      <button class="btn-header-action" id="btnToggleSidebar">🎛️ 스튜디오 덱</button>
+      <button class="btn-header-action" id="btnOpenDocs">📖 특허 명세서</button>
     </div>
   </header>
 
-  <!-- Left Inspector Panel -->
-  <div class="inspector-panel" id="inspector">
-
-    <!-- TAB 1: TOY SIMULATOR CONTROLS -->
-    <div class="tab-pane" id="paneToy">
-      <div class="inspector-section-header">
-        <span>조작 및 연속 드로잉</span>
-        <span class="key-indicator">WASD / 방향키</span>
+  <!-- Unified Studio Sidebar -->
+  <div class="studio-sidebar" id="studioSidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title" id="sidebarTitle">
+        <span>🎮 인터랙티브 조작</span>
       </div>
-
-      <div class="field-group">
-        <div class="field-label">
-          <span>X축 수평 다이얼 (좌측 노브)</span>
-          <span class="field-val" id="lblDialX">512 px</span>
-        </div>
-        <input type="range" id="sliderDialX" min="20" max="1004" value="512" step="1">
-      </div>
-
-      <div class="field-group">
-        <div class="field-label">
-          <span>Y축 수직 다이얼 (우측 노브)</span>
-          <span class="field-val" id="lblDialY">384 px</span>
-        </div>
-        <input type="range" id="sliderDialY" min="20" max="748" value="384" step="1">
-      </div>
-
-      <div class="btn-row" style="margin-top: 6px;">
-        <button class="btn-action red" id="btnShakeToy">📳 흔들어서 지우기</button>
-        <button class="btn-action" id="btnResetPowder">🧹 분말 초기화</button>
-      </div>
-
-      <div class="inspector-section-header" style="margin-top: 14px;">
-        <span>물리 광학 및 기구학 간섭</span>
-      </div>
-
-      <div class="field-group">
-        <div class="field-label">
-          <span>가이드 로드 십자 음영 (Crosshair Shadow)</span>
-          <span class="field-val" id="lblCrosshair">ON</span>
-        </div>
-        <select id="selCrosshair">
-          <option value="1">특허 실물 광학 간섭 (Crosshair Active)</option>
-          <option value="0">가상 이상 화면 (Shadow Off)</option>
-        </select>
-      </div>
-
-      <div class="field-group">
-        <div class="field-label">
-          <span>알루미늄 분말 둔덕 버(Burr) 융기</span>
-          <span class="field-val" id="lblBurr">55.0</span>
-        </div>
-        <input type="range" id="sliderBurr" min="0" max="100" value="55" step="1">
-      </div>
-
-      <div class="field-group">
-        <div class="field-label">
-          <span>2.5mm 소다라임 유리 굴절 및 스펙큘러</span>
-          <span class="field-val" id="lblGlass">ON</span>
-        </div>
-        <select id="selGlass">
-          <option value="1">소다라임 유리 물리 (n=1.52)</option>
-          <option value="0">반사 제거</option>
-        </select>
-      </div>
-
-      <div class="field-group">
-        <div class="field-label">
-          <span>아날로그 손떨림 & 백래시 보정</span>
-          <span class="field-val" id="lblHumanize">ON</span>
-        </div>
-        <select id="selHumanize">
-          <option value="1">유기적 비이진 오차 모델 (Anti-Grid)</option>
-          <option value="0">수학적 이상 그리드</option>
-        </select>
-      </div>
+      <button class="sidebar-close-btn" id="btnCloseSidebar" title="패널 접기">✕</button>
     </div>
 
-    <!-- TAB 2: CUTAWAY / EXPLODED VIEW CONTROLS -->
-    <div class="tab-pane" id="paneCutaway" style="display:none;">
-      <div class="inspector-section-header">
-        <span>US Patent 3,055,113 분해도</span>
-      </div>
+    <div class="sidebar-body">
 
-      <div class="field-group">
-        <div class="field-label">
-          <span>3D 폭발 분해도 (Exploded View)</span>
-          <span class="field-val" id="lblExplode">0%</span>
+      <!-- SECTION 1: TOY SIMULATOR CONTROLS -->
+      <div class="tab-pane" id="paneToy">
+        <div class="control-card">
+          <div class="card-title">
+            <span>방향 제어 모드</span>
+            <span style="color:var(--gold); font-size:10px;">버그 방지 잠금</span>
+          </div>
+          <div class="mode-switch-group">
+            <button class="mode-switch-btn active" id="btnModeOrtho">📐 직교 단일축 잠금</button>
+            <button class="mode-switch-btn" id="btnModeFree">↗ 자유 대각선 드로잉</button>
+          </div>
+          <div style="font-size: 11px; color: var(--text-dim); line-height: 1.4;">
+            * <strong>직교 단일축 잠금</strong>: 방향키나 노브 조작 시 대각선 이탈 없이 완벽한 수평/수직선을 보장합니다 (입력 꼬임 방지).
+          </div>
         </div>
-        <input type="range" id="sliderExplode" min="0" max="100" value="0" step="1">
-      </div>
 
-      <div class="field-group">
-        <div class="field-label">
-          <span>상부 섀시 투명도 (X-Ray Cutaway)</span>
-          <span class="field-val" id="lblXray">0%</span>
+        <div class="control-card">
+          <div class="card-title">
+            <span>회전 다이얼 조작</span>
+            <span style="font-size:10px; color:var(--text-dim);">3D 노브 직접 드래그 가능</span>
+          </div>
+          <div class="field-group">
+            <div class="field-row">
+              <span>수평 X 다이얼 (좌측 노브)</span>
+              <span class="field-val" id="lblDialX">512 px</span>
+            </div>
+            <input type="range" id="sliderDialX" min="20" max="1004" value="512" step="1">
+          </div>
+          <div class="field-group">
+            <div class="field-row">
+              <span>수직 Y 다이얼 (우측 노브)</span>
+              <span class="field-val" id="lblDialY">384 px</span>
+            </div>
+            <input type="range" id="sliderDialY" min="20" max="748" value="384" step="1">
+          </div>
+          <div class="btn-grid-2">
+            <button class="btn-ctrl red" id="btnShakeToy">📳 흔들어서 지우기</button>
+            <button class="btn-ctrl" id="btnResetPowder">🧹 분말 초기화</button>
+          </div>
         </div>
-        <input type="range" id="sliderXray" min="0" max="95" value="0" step="1">
-      </div>
 
-      <div class="inspector-section-header" style="margin-top: 14px;">
-        <span>기구학 핵심 부품 투시</span>
-      </div>
-
-      <div class="btn-row">
-        <button class="btn-action" id="btnFocusRods">🔩 강철 가이드 로드</button>
-        <button class="btn-action" id="btnFocusCarriage">🟨 황동 캐리지</button>
-        <button class="btn-action" id="btnFocusCables">🪢 엔드리스 와이어</button>
-        <button class="btn-action" id="btnFocusBeads">⚪ 폴리스티렌 비즈</button>
-      </div>
-    </div>
-
-    <!-- TAB 3: ART & VECTOR PLOTTER -->
-    <div class="tab-pane" id="panePlotter" style="display:none;">
-      <div class="inspector-section-header">
-        <span>클래식 에치 어 스케치 아트 프리셋</span>
-      </div>
-
-      <div class="field-group">
-        <div class="field-label">
-          <span>작품 프리셋 선택</span>
-        </div>
-        <select id="selArtPreset">
-          <option value="spirograph">📐 스파이로그래프 (Hypotrochoid Lace)</option>
-          <option value="house">🏠 1960년대 클래식 오하이오 아트 하우스</option>
-          <option value="monalisa">🖼️ 모나리자 연속 단일선 (One-Line Portrait)</option>
-          <option value="lissajous">〰️ 리사주 고조파 공명 (Lissajous Curves)</option>
-        </select>
-      </div>
-
-      <div class="btn-row">
-        <button class="btn-action gold" id="btnDrawPreset">🎨 프리셋 렌더링</button>
-        <button class="btn-action" id="btnExportSVG">📥 SVG 벡터 저장</button>
-      </div>
-
-      <div class="inspector-section-header" style="margin-top: 14px;">
-        <span>외부 이미지 오일러 변환기</span>
-      </div>
-
-      <div class="field-group">
-        <div class="field-label">
-          <span>로컬 사진 / 스케치 업로드</span>
-        </div>
-        <input type="file" id="fileImageInput" accept="image/*" style="font-size:11px; color:#cbd5e1;">
-      </div>
-
-      <div class="field-group">
-        <div class="field-label">
-          <span>스크린톤 알고리즘 (light-screentone)</span>
-        </div>
-        <select id="selScreentoneMode">
-          <option value="boustrophedon">부스트로페돈 해칭 (Void-Avoiding)</option>
-          <option value="dot">도트 하프톤 매트릭스 (Dot Matrix)</option>
-          <option value="line">라인 스크린톤 45° (Hatching)</option>
-          <option value="cross">크로스해칭 45° (Crosshatch)</option>
-          <option value="bayer8">오더드 디더링 (Bayer 8x8)</option>
-        </select>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- Right Telemetry & Engineering HUD -->
-  <div class="hud-panel">
-    <div class="hud-card">
-      <div class="inspector-section-header" style="margin-bottom: 8px;">
-        <span>실시간 기구학 텔레메트리 HUD</span>
-      </div>
-      <div class="hud-metric-row">
-        <span class="hud-key">PATENT SPEC</span>
-        <span class="hud-val gold">US 3,055,113 (Grandjean)</span>
-      </div>
-      <div class="hud-metric-row">
-        <span class="hud-key">DRIVE RAILS</span>
-        <span class="hud-val">Dual Orthogonal Rods 11/12</span>
-      </div>
-      <div class="hud-metric-row">
-        <span class="hud-key">LINE TOPOLOGY</span>
-        <span class="hud-val green">100% Eulerian (Pen Lifts: 0)</span>
-      </div>
-      <div class="hud-metric-row">
-        <span class="hud-key">STYLUS COORD</span>
-        <span class="hud-val" id="hudStylus">X: 512.0 | Y: 384.0</span>
-      </div>
-      <div class="hud-metric-row">
-        <span class="hud-key">SCRAPED POWDER</span>
-        <span class="hud-val" id="hudPowder">0.00% Area</span>
-      </div>
-      <div class="hud-metric-row">
-        <span class="hud-key">CABLE TENSION</span>
-        <span class="hud-val green">0.42 N (Nominal)</span>
-      </div>
-      <div class="hud-metric-row">
-        <span class="hud-key">LEAF SPRING</span>
-        <span class="hud-val">Phosphor Bronze (0.35 N)</span>
-      </div>
-      <div class="hud-metric-row">
-        <span class="hud-key">GLASS MEDIUM</span>
-        <span class="hud-val">2.5mm Soda-Lime (n=1.52)</span>
-      </div>
-
-      <!-- Knob Rotation Visualizers -->
-      <div class="dial-visualizer">
-        <div class="dial-box">
-          <div class="dial-ring" id="ringLeft"><div class="dial-dot"></div></div>
-          <div class="dial-lbl">X-Dial (Left)</div>
-          <div class="dial-deg" id="degLeft">0°</div>
-        </div>
-        <div class="dial-box">
-          <div class="dial-ring" id="ringRight"><div class="dial-dot"></div></div>
-          <div class="dial-lbl">Y-Dial (Right)</div>
-          <div class="dial-deg" id="degRight">0°</div>
+        <div class="control-card">
+          <div class="card-title">
+            <span>키보드 조작 가이드</span>
+            <span style="color:var(--emerald); font-size:10px;">60 FPS 연속선</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+            • <strong>WASD</strong> 또는 <strong>방향키</strong>: 펜 떼기 없는 연속 선 그리기<br>
+            • <strong>3D 백색 노브</strong>: 마우스 클릭 후 좌우/상하 드래그로 직접 회전 가능
+          </div>
         </div>
       </div>
+
+      <!-- SECTION 2: CUTAWAY & EXPLOED VIEW -->
+      <div class="tab-pane" id="paneCutaway" style="display:none;">
+        <div class="control-card">
+          <div class="card-title">
+            <span>US Patent 3,055,113 분해도</span>
+            <span class="field-val" id="lblExplode">45%</span>
+          </div>
+          <input type="range" id="sliderExplode" min="0" max="100" value="45" step="1">
+          <div class="field-group" style="margin-top: 6px;">
+            <div class="field-row">
+              <span>상부 섀시 X-Ray 투명도</span>
+              <span class="field-val" id="lblXray">35%</span>
+            </div>
+            <input type="range" id="sliderXray" min="0" max="100" value="35" step="1">
+          </div>
+        </div>
+
+        <div class="control-card">
+          <div class="card-title">
+            <span>기구학 핵심 부품 투시 포커스</span>
+          </div>
+          <div class="btn-grid-2">
+            <button class="btn-ctrl" id="btnFocusRods">🔩 강철 가이드 로드</button>
+            <button class="btn-ctrl" id="btnFocusCarriage">🟨 황동 캐리지</button>
+            <button class="btn-ctrl" id="btnFocusCables">🪢 엔드리스 와이어</button>
+            <button class="btn-ctrl" id="btnFocusBeads">⚪ 폴리스티렌 비즈</button>
+          </div>
+        </div>
+
+        <div class="control-card">
+          <div class="card-title">
+            <span>실시간 기구학 텔레메트리</span>
+            <span style="color:var(--gold); font-size:10px;">US 3,055,113</span>
+          </div>
+          <table class="telemetry-table">
+            <tr>
+              <td class="td-key">스타일러스 2D 좌표</td>
+              <td class="td-val" id="hudCoord">512, 384</td>
+            </tr>
+            <tr>
+              <td class="td-key">좌/우 다이얼 회전각</td>
+              <td class="td-val" id="hudKnobs">0°, 0°</td>
+            </tr>
+            <tr>
+              <td class="td-key">분말 박리 면적률</td>
+              <td class="td-val gold" id="hudScraped">0.00%</td>
+            </tr>
+            <tr>
+              <td class="td-key">와이어 케이블 장력</td>
+              <td class="td-val green">0.42 N (정상)</td>
+            </tr>
+            <tr>
+              <td class="td-key">인청동 판스프링 하중</td>
+              <td class="td-val">0.35 N</td>
+            </tr>
+            <tr>
+              <td class="td-key">소다라임 유리 굴절률</td>
+              <td class="td-val">n = 1.52 (2.5mm)</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- SECTION 3: ART & VECTOR PLOTTER -->
+      <div class="tab-pane" id="panePlotter" style="display:none;">
+        <div class="control-card">
+          <div class="card-title">
+            <span>클래식 수학·공학 프리셋</span>
+          </div>
+          <select id="selArtPreset">
+            <option value="spirograph">🌀 스파이로그래프 하이포트로코이드</option>
+            <option value="house" selected>🏠 1960년대 클래식 오하이오 아트 하우스</option>
+            <option value="monalisa">🖼️ 모나리자 1-라인 윤곽 초상화</option>
+            <option value="lissajous">〰️ 리사주 고조파 공명 곡선 (3:4)</option>
+          </select>
+          <div class="btn-grid-2">
+            <button class="btn-ctrl gold" id="btnDrawPreset">🎨 프리셋 렌더링</button>
+            <button class="btn-ctrl" id="btnExportSVG">💾 SVG 벡터 저장</button>
+          </div>
+        </div>
+
+        <div class="control-card">
+          <div class="card-title">
+            <span>로컬 사진/스케치 오일러 변환기</span>
+          </div>
+          <input type="file" id="fileImageInput" accept="image/*" style="font-size:11px; color:#cbd5e1;">
+          <select id="selScreentoneMode" style="margin-top: 4px;">
+            <option value="boustrophedon">부스트로페돈 해칭 (Void-Avoiding)</option>
+            <option value="dot">도트 매트릭스 하프톤</option>
+            <option value="line">라인 스크린톤</option>
+            <option value="crosshatch">크로스 해칭</option>
+            <option value="bayer">베이어 규칙적 디더링</option>
+          </select>
+          <div style="font-size: 11px; color: var(--text-dim); line-height: 1.4;">
+            * `light-screentone` 엔진이 여백 침범 없이 단일 획(Pen Lifts: 0)으로 자동 변환합니다.
+          </div>
+        </div>
+
+        <div class="control-card">
+          <div class="card-title">
+            <span>물리 및 광학 오차 시뮬레이션</span>
+          </div>
+          <div class="field-row">
+            <span>가이드 로드 십자 투과 음영</span>
+            <span class="field-val" id="lblCrosshair">ON</span>
+          </div>
+          <select id="selCrosshair">
+            <option value="1" selected>특허 실물 광학 간섭 (Crosshair Active)</option>
+            <option value="0">이상적 무간섭 화면 (Ideal Clear)</option>
+          </select>
+
+          <div class="field-row" style="margin-top:6px;">
+            <span>알루미늄 분말 둔덕(버) 융기</span>
+            <span class="field-val" id="lblBurr">55.0</span>
+          </div>
+          <input type="range" id="sliderBurr" min="0" max="100" value="55" step="1">
+
+          <div class="field-row" style="margin-top:6px;">
+            <span>아날로그 손떨림 & 백래시 보정</span>
+            <span class="field-val" id="lblHumanize">ON</span>
+          </div>
+          <select id="selHumanize">
+            <option value="1" selected>유기적 비이진 오차 모델 (Anti-Grid)</option>
+            <option value="0">인공 디지털 정수 격자 (Raw Grid)</option>
+          </select>
+        </div>
+      </div>
+
     </div>
   </div>
 
-  <!-- Bottom Floating Dock -->
+  <!-- Bottom Floating Minimalist Dock -->
   <div class="bottom-dock">
-    <button class="dock-btn" id="btnViewFront">📷 정면 뷰</button>
+    <button class="dock-btn" id="btnViewFront">🔲 정면 뷰</button>
     <button class="dock-btn" id="btnViewIso">📐 아이소메트릭 45°</button>
     <button class="dock-btn" id="btnViewMacro">🔍 스타일러스 접사</button>
     <div class="dock-divider"></div>
-    <button class="dock-btn" id="btnDockShake" style="color:var(--accent-red);">📳 흔들기</button>
+    <button class="dock-btn" id="btnDockLock" title="직교 단일축 잠금 토글">🔒 직교 잠금: ON</button>
+    <button class="dock-btn" id="btnDockShake" style="color:#ef4444;">📳 흔들기</button>
   </div>
 
-  <!-- Patent Modal -->
+  <!-- Patent US 3,055,113 Modal -->
   <div class="modal-overlay" id="modalDocs">
     <div class="modal-dialog">
-      <button class="modal-close-btn" id="btnDocsClose">&times;</button>
-      <div class="modal-h2">US Patent 3,055,113: 기계식 트레이싱 장치 원리</div>
+      <button class="modal-close-btn" id="btnDocsClose">✕</button>
+      <div class="modal-h2">US Patent 3,055,113 공학 분석서</div>
       <div class="modal-desc">
-        <p><strong>1. 직교 가이드 로드 구동계 (Orthogonal Rails 11 & 12):</strong><br>
-        에치 어 스케치는 수평 강철 로드(11)와 수직 강철 로드(12)가 서로 수직으로 교차하며, 각각 독립된 무단 와이어 케이블과 풀리에 연결되어 회전 다이얼 노브에 의해 슬라이딩합니다.</p>
+        <p><strong>발명의 명칭:</strong> Tracing Device (트레이싱 장치)<br>
+        <strong>발명자:</strong> Arthur Grandjean (1959년 출원, 1962년 미국 특허청 등록)<br>
+        <strong>원안:</strong> André Cassagnes (<em>L'Écran Magique</em>, 프랑스 특허 1,185,270)</p>
         <br>
-        <p><strong>2. 드로잉 암의 필연적 광학 간섭 (Drawing Arm Interference):</strong><br>
-        강철 가이드 로드는 유리판 바로 뒤(1.5~2.0mm)에 위치하기 때문에, 정면 조명이 반투명 분말층을 투과할 때 십자형 확산 음영이 발생하며, 분말이 긁혀 투명해진 유리창 틈새로는 반사율 높은 원통형 강철 로드와 황동 캐리지가 직접 반사되어 보입니다.</p>
+        <p><strong>1. 직교 가이드 로드 구동계:</strong><br>
+        좌측 다이얼은 수평 와이어 케이블을 구동하여 수직 강철 로드(Rod 12)를 $X$축으로 이동시키며, 우측 다이얼은 수직 와이어 케이블을 구동하여 수평 강철 로드(Rod 11)를 $Y$축으로 이동시킵니다. 두 로드가 교차하는 지점에 장착된 황동 스타일러스 캐리지가 2차원 평면 전체를 주사합니다.</p>
+        <br>
+        <p><strong>2. 펜을 뗄 수 없는 물리적 제약 (Eulerian Polyline):</strong><br>
+        스타일러스 팁은 내부 인청동 판스프링에 의해 유리판 이면에 항상 일정한 압력($F \approx 0.35\text{ N}$)으로 밀착되어 있어, 물리적으로 펜을 들어올릴 수 없습니다(Pen Lifts: 0). 따라서 모든 그래픽은 외곽 베젤 테두리를 은폐 경유하는 오일러 경로로 생성됩니다.</p>
         <br>
         <p><strong>3. 알루미늄 분말과 폴리스티렌 비즈 순환 물리 (Shake to Erase):</strong><br>
-        밀폐 챔버 내부에는 초미세 알루미늄 분말과 구형 폴리스티렌 비즈가 함께 봉입되어 있습니다. 본체를 흔들면 비즈가 분말을 비비면서 발생하는 정전기 흡착력으로 유리 이면에 분말이 균일하게 재도포되어 화면이 초기화됩니다.</p>
+        밀폐 챔버 내부에는 초미세 알루미늄 분말과 120여 개의 구형 폴리스티렌 비즈가 함께 봉입되어 있습니다. 본체를 흔들면 비즈가 분말을 비비면서 발생하는 정전기 흡착력과 물리적 쓸림으로 유리 이면에 분말이 균일하게 재도포되어 화면이 초기화됩니다.</p>
       </div>
     </div>
   </div>
@@ -688,6 +727,7 @@
     let burrPower = 55.0;
     let glassRefractionOn = true;
     let humanizeOn = true;
+    let currentEulerianPath = [];
 
     // Reset powder to clean aluminum
     function resetPowderBuffer() {
@@ -697,8 +737,7 @@
       updateTelemetryHUD();
     }
 
-    // High-performance continuous line scratch (Bresenham / Sub-step)
-    // [BUG 6 FIX]: Interpolates every sub-pixel between (x1, y1) and (x2, y2)
+    // High-performance continuous line scratch (Sub-step interpolation)
     function scratchSegment(x1, y1, x2, y2) {
       const dx = x2 - x1;
       const dy = y2 - y1;
@@ -712,7 +751,6 @@
         const cx = Math.floor(x1 + (dx * s) / steps);
         const cy = Math.floor(y1 + (dy * s) / steps);
 
-        // 3x3 circular footprint
         for (let ry = -2; ry <= 2; ry++) {
           const py = cy + ry;
           if (py < 0 || py >= PH) continue;
@@ -754,34 +792,29 @@
           const depth = scratchDepth[rowOff + x];
 
           if (depth > 0.05) {
-            // Scraped trench: dark cavity + steel/brass reflection
             let rCav = 28, gCav = 26, bCav = 25;
 
-            // Rod 12 (Vertical steel rod reflection)
+            // Rod reflections through trench
             if (dx < 7) {
               const spec = (1.0 - dx / 7.0);
               rCav = 115 + spec * 75;
               gCav = 120 + spec * 75;
               bCav = 128 + spec * 75;
             } else if (dy < 7) {
-              // Rod 11 (Horizontal steel rod reflection)
               const spec = (1.0 - dy / 7.0);
               rCav = 110 + spec * 75;
               gCav = 115 + spec * 75;
               bCav = 122 + spec * 75;
             }
 
-            // Brass carriage reflection
             if (dx < 14 && dy < 14) {
-              rCav = 185; gCav = 150; bCav = 50;
+              rCav = 185; gCav = 150; bCav = 50; // Brass carriage
             }
 
-            // Incomplete scraping graphite haze
             data[idx]     = rCav * 0.88 + 198 * 0.12;
             data[idx + 1] = gCav * 0.88 + 200 * 0.12;
             data[idx + 2] = bCav * 0.88 + 204 * 0.12;
           } else {
-            // Unscraped powder with diffuse internal rod shadow
             const grain = (Math.random() - 0.5) * 6.0;
             const al = Math.max(0, Math.min(255, (200 + grain) * (1.0 - crossShadow)));
             data[idx]     = al;
@@ -806,7 +839,6 @@
       pCtx.fillStyle = gLeft;
       pCtx.fillRect(0, 0, 22, PH);
 
-      // Specular glare streak if enabled
       if (glassRefractionOn) {
         const diag = pCtx.createLinearGradient(0, 0, PW, PH);
         diag.addColorStop(0.32, 'rgba(255,255,255,0)');
@@ -834,7 +866,7 @@
     scene.background = new THREE.Color(0x090a0f);
 
     const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 2500);
-    camera.position.set(0, -40, 560);
+    camera.position.set(0, -35, 550);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -849,8 +881,8 @@
     controls.maxDistance = 1100;
     controls.minDistance = 180;
 
-    // Studio Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.72);
     scene.add(ambientLight);
 
     const keyLight = new THREE.DirectionalLight(0xfff7ed, 0.95);
@@ -859,11 +891,11 @@
     keyLight.shadow.mapSize.set(2048, 2048);
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0x93c5fd, 0.45);
+    const rimLight = new THREE.DirectionalLight(0x93c5fd, 0.42);
     rimLight.position.set(-220, -180, 250);
     scene.add(rimLight);
 
-    // Assembly Hierarchy for Exploded View
+    // Assembly Groups
     const rootAssembly = new THREE.Group();
     scene.add(rootAssembly);
 
@@ -881,12 +913,15 @@
     rootAssembly.add(layerGlass);
     rootAssembly.add(layerTopCase);
 
-    // Scaled Dimensions (Width: 380, Height: 290, Screen: 280 x 205)
     const TOY_W = 380;
     const TOY_H = 290;
     const SCR_W = 280;
     const SCR_H = 205;
     const SCR_OFFSET_Y = 16;
+    const sw2 = SCR_W / 2;
+    const sh2 = SCR_H / 2;
+    const tw2 = TOY_W / 2;
+    const th2 = TOY_H / 2;
 
     // Materials
     const cherryRedMat = new THREE.MeshStandardMaterial({
@@ -921,9 +956,9 @@
       metalness: 0.02
     });
 
-    // 1. Top Red Chassis with Beveled Window Cutout
+    // 1. Top Chassis
     const topShape = new THREE.Shape();
-    const tw2 = TOY_W / 2, th2 = TOY_H / 2, cr = 18;
+    const cr = 18;
     topShape.moveTo(-tw2 + cr, -th2);
     topShape.lineTo(tw2 - cr, -th2);
     topShape.quadraticCurveTo(tw2, -th2, tw2, -th2 + cr);
@@ -935,7 +970,6 @@
     topShape.quadraticCurveTo(-tw2, -th2, -tw2 + cr, -th2);
 
     const hole = new THREE.Path();
-    const sw2 = SCR_W / 2, sh2 = SCR_H / 2;
     hole.moveTo(-sw2, -sh2 + SCR_OFFSET_Y);
     hole.lineTo(sw2, -sh2 + SCR_OFFSET_Y);
     hole.lineTo(sw2, sh2 + SCR_OFFSET_Y);
@@ -943,7 +977,6 @@
     hole.lineTo(-sw2, -sh2 + SCR_OFFSET_Y);
     topShape.holes.push(hole);
 
-    // [BUG 3 FIX]: Top Case depth and Z position properly calibrated
     const topGeo = new THREE.ExtrudeGeometry(topShape, {
       depth: 14,
       bevelEnabled: true,
@@ -953,11 +986,11 @@
       bevelThickness: 3
     });
     const topMesh = new THREE.Mesh(topGeo, cherryRedMat);
-    topMesh.position.z = 2; // Surface reaches Z = 2 + 14 + 3 = 19
+    topMesh.position.z = 2; // Front face at Z = 19
     topMesh.castShadow = true;
     layerTopCase.add(topMesh);
 
-    // [BUG 3 FIX]: Gold Foil Typography correctly placed on front face (Z = 19.5)
+    // Gold Plaque (Z = 19.5)
     const goldTexCanvas = document.createElement('canvas');
     goldTexCanvas.width = 512; goldTexCanvas.height = 64;
     const gctx = goldTexCanvas.getContext('2d');
@@ -965,7 +998,7 @@
     gctx.font = 'bold 24px -apple-system, sans-serif';
     gctx.fillStyle = '#fbbf24'; gctx.textAlign = 'center';
     gctx.fillText('MAGIC Etch A Sketch SCREEN', 256, 28);
-    gctx.font = '12px var(--font-mono), sans-serif'; gctx.fillStyle = '#fef08a';
+    gctx.font = '12px ui-monospace, sans-serif'; gctx.fillStyle = '#fef08a';
     gctx.fillText('THE OHIO ART CO. - US PAT. 3,055,113', 256, 48);
 
     const goldTexture = new THREE.CanvasTexture(goldTexCanvas);
@@ -973,10 +1006,10 @@
       new THREE.PlaneGeometry(165, 21),
       new THREE.MeshBasicMaterial({ map: goldTexture })
     );
-    goldPlane.position.set(0, th2 - 18, 19.5); // Perfectly sits on front plastic face
+    goldPlane.position.set(0, th2 - 18, 19.5);
     layerTopCase.add(goldPlane);
 
-    // 2. Soda-Lime Glass Plate (Z = 13.5)
+    // 2. Soda-Lime Glass (Z = 13.5)
     const glassGeo = new THREE.BoxGeometry(SCR_W + 8, SCR_H + 8, 2.5);
     const glassMat = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
@@ -1000,7 +1033,7 @@
     screenMesh.position.set(0, SCR_OFFSET_Y, 11.8);
     layerScreen.add(screenMesh);
 
-    // 4. US Patent 3,055,113 Guide Rods & Carriage (Behind Screen at Z = 5)
+    // 4. US Patent 3,055,113 Guide Rods & Carriage (Z = 5)
     const vertRodGeo = new THREE.CylinderGeometry(1.6, 1.6, SCR_H + 30, 16);
     const vertRodMesh = new THREE.Mesh(vertRodGeo, steelMat);
     vertRodMesh.position.set(0, SCR_OFFSET_Y, 5);
@@ -1048,16 +1081,14 @@
       layerMechanics.add(p);
     });
 
-    // 5. [BUG 3 FIX]: 3D Knurled Rotary Dials proudly positioned ON front face (Z = 24)
+    // 5. 3D Knurled Rotary Dials (Z = 24)
     function buildKnob3D() {
       const g = new THREE.Group();
-      // Main cylindrical body (radius: 27, depth: 10)
       const bGeo = new THREE.CylinderGeometry(27, 27, 10, 32);
       const b = new THREE.Mesh(bGeo, knobMat);
       b.rotation.x = Math.PI / 2;
       g.add(b);
 
-      // Knurled grip ridges (24 serrated flutes)
       const toothGeo = new THREE.BoxGeometry(2.2, 4.2, 10);
       for (let i = 0; i < 24; i++) {
         const th = (i * Math.PI * 2) / 24;
@@ -1067,7 +1098,6 @@
         g.add(t);
       }
 
-      // Red index indicator dot
       const dotGeo = new THREE.SphereGeometry(2.4, 8, 8);
       const dotMat = new THREE.MeshBasicMaterial({ color: 0xdc2626 });
       const dot = new THREE.Mesh(dotGeo, dotMat);
@@ -1078,11 +1108,11 @@
     }
 
     const knobLeft = buildKnob3D();
-    knobLeft.position.set(-115, -th2 + 40, 24); // Raised above front face!
+    knobLeft.position.set(-115, -th2 + 40, 24);
     layerTopCase.add(knobLeft);
 
     const knobRight = buildKnob3D();
-    knobRight.position.set(115, -th2 + 40, 24); // Raised above front face!
+    knobRight.position.set(115, -th2 + 40, 24);
     layerTopCase.add(knobRight);
 
     // 6. Bottom Shell
@@ -1091,22 +1121,35 @@
     botMesh.position.set(0, 0, -13);
     layerBotCase.add(botMesh);
 
-    // 7. Polystyrene Beads (Particles)
-    const beadGeo = new THREE.SphereGeometry(2.2, 8, 8);
-    const beadMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+    // 7. Active 3D Polystyrene Beads (120 Particles with real physics & screen erasing)
+    const BEAD_COUNT = 120;
+    const beadGeo = new THREE.SphereGeometry(2.3, 10, 10);
+    const beadMat = new THREE.MeshStandardMaterial({
+      color: 0xf1f5f9,
+      roughness: 0.42,
+      metalness: 0.05
+    });
+
     const beads = [];
-    for (let i = 0; i < 90; i++) {
-      const b = new THREE.Mesh(beadGeo, beadMat);
-      b.position.set(
-        (Math.random() - 0.5) * (SCR_W - 20),
-        -sh2 + SCR_OFFSET_Y + Math.random() * 24,
-        Math.random() * 6 - 2
-      );
-      layerBeads.add(b);
-      beads.push(b);
+    const beadsPhysics = [];
+
+    for (let i = 0; i < BEAD_COUNT; i++) {
+      const bMesh = new THREE.Mesh(beadGeo, beadMat);
+      layerBeads.add(bMesh);
+      beads.push(bMesh);
+
+      const px = (Math.random() - 0.5) * (SCR_W - 20);
+      const py = -sh2 + SCR_OFFSET_Y + 4 + Math.random() * 14;
+      const pz = Math.random() * 8 - 2;
+
+      beadsPhysics.push({
+        x: px, y: py, z: pz,
+        vx: 0, vy: 0, vz: 0
+      });
+      bMesh.position.set(px, py, pz);
     }
 
-    // Exploded View Slider Handler
+    // Exploded View Separation
     function applyExplodedSeparation(ratio) {
       layerTopCase.position.z   =  115 * ratio;
       layerGlass.position.z     =   58 * ratio;
@@ -1130,74 +1173,202 @@
       knobRight.rotation.z = -THREE.MathUtils.degToRad(knobAngleY);
     }
 
-    // Shake to Erase Animation
-    let isShaking = false;
-    let shakeFrame = 0;
-    function startShakeAnimation() {
-      if (isShaking) return;
-      isShaking = true;
-      shakeFrame = 48;
-    }
-
-    // Telemetry HUD Update
     function updateTelemetryHUD() {
       document.getElementById('lblDialX').textContent = `${stylusX.toFixed(1)} px`;
       document.getElementById('lblDialY').textContent = `${stylusY.toFixed(1)} px`;
-      document.getElementById('hudStylus').textContent = `X: ${stylusX.toFixed(1)} | Y: ${stylusY.toFixed(1)}`;
+      document.getElementById('sliderDialX').value = Math.round(stylusX);
+      document.getElementById('sliderDialY').value = Math.round(stylusY);
 
-      const degL = (knobAngleX % 360).toFixed(0);
-      const degR = (knobAngleY % 360).toFixed(0);
-      document.getElementById('degLeft').textContent = `${degL}°`;
-      document.getElementById('degRight').textContent = `${degR}°`;
-      document.getElementById('ringLeft').style.transform = `rotate(${degL}deg)`;
-      document.getElementById('ringRight').style.transform = `rotate(${degR}deg)`;
+      document.getElementById('hudCoord').textContent = `${stylusX.toFixed(0)}, ${stylusY.toFixed(0)}`;
+      document.getElementById('hudKnobs').textContent = `${(knobAngleX % 360).toFixed(0)}°, ${(knobAngleY % 360).toFixed(0)}°`;
 
-      let scraped = 0;
-      for (let i = 0; i < scratchDepth.length; i += 8) {
-        if (scratchDepth[i] > 0.1) scraped++;
+      let scrapedCount = 0;
+      const step = 8;
+      for (let i = 0; i < scratchDepth.length; i += step) {
+        if (scratchDepth[i] > 0.05) scrapedCount++;
       }
-      const pct = (scraped / (scratchDepth.length / 8)) * 100.0;
-      document.getElementById('hudPowder').textContent = `${pct.toFixed(2)}% Area`;
+      const areaRatio = (scrapedCount / (scratchDepth.length / step)) * 100;
+      document.getElementById('hudScraped').textContent = `${areaRatio.toFixed(2)}%`;
     }
 
     // =========================================================================
-    // 3. Classic Art Presets & Eulerian Vector Plotter
+    // 3. Direct Mouse/Touch 3D Knob Dragging Interaction
     // =========================================================================
-    let currentEulerianPath = [];
+    const raycaster = new THREE.Raycaster();
+    const mouseCoord = new THREE.Vector2();
+    let draggedKnob = null; // 'left' | 'right'
+    let lastDragPos = { x: 0, y: 0 };
 
-    // [BUG 4 & BUG 5 FIX]: Renders classic artwork avoiding white gaps
+    window.addEventListener('pointerdown', (e) => {
+      // Ignore clicks on HTML UI elements
+      if (e.target.closest('#studioSidebar') || e.target.closest('header') || e.target.closest('.bottom-dock') || e.target.closest('.modal-overlay')) {
+        return;
+      }
+
+      mouseCoord.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouseCoord.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouseCoord, camera);
+      const hits = raycaster.intersectObjects([knobLeft, knobRight], true);
+
+      if (hits.length > 0) {
+        let obj = hits[0].object;
+        while (obj.parent && obj !== knobLeft && obj !== knobRight) {
+          obj = obj.parent;
+        }
+        if (obj === knobLeft) {
+          draggedKnob = 'left';
+          controls.enabled = false;
+          lastDragPos = { x: e.clientX, y: e.clientY };
+        } else if (obj === knobRight) {
+          draggedKnob = 'right';
+          controls.enabled = false;
+          lastDragPos = { x: e.clientX, y: e.clientY };
+        }
+      }
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!draggedKnob) return;
+
+      const dx = e.clientX - lastDragPos.x;
+      const dy = e.clientY - lastDragPos.y;
+      lastDragPos = { x: e.clientX, y: e.clientY };
+
+      if (draggedKnob === 'left') {
+        const moveX = dx * 1.8;
+        const nextX = Math.max(16, Math.min(PW - 16, stylusX + moveX));
+        scratchSegment(stylusX, stylusY, nextX, stylusY);
+        renderPowderScreen();
+        if (screenTexture) screenTexture.needsUpdate = true;
+        updateTelemetryHUD();
+      } else if (draggedKnob === 'right') {
+        const moveY = dy * 1.8;
+        const nextY = Math.max(16, Math.min(PH - 16, stylusY + moveY));
+        scratchSegment(stylusX, stylusY, stylusX, nextY);
+        renderPowderScreen();
+        if (screenTexture) screenTexture.needsUpdate = true;
+        updateTelemetryHUD();
+      }
+    });
+
+    window.addEventListener('pointerup', () => {
+      if (draggedKnob) {
+        draggedKnob = null;
+        controls.enabled = true;
+      }
+    });
+
+    // =========================================================================
+    // 4. Bulletproof 60 FPS Keyboard Control (Bug Fix & Orthogonal Lock)
+    // =========================================================================
+    const activeKeys = new Set();
+    let orthogonalLock = true; // Prevents accidental diagonal skew!
+    let lastPressedAxis = 'x'; // 'x' | 'y'
+
+    const NAV_KEYS = new Set([
+      'KeyW', 'KeyA', 'KeyS', 'KeyD',
+      'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'
+    ]);
+
+    window.addEventListener('keydown', (e) => {
+      if (NAV_KEYS.has(e.code)) {
+        e.preventDefault();
+        // Blur any focused form inputs so arrow keys never conflict
+        if (document.activeElement && document.activeElement.tagName !== 'BODY') {
+          document.activeElement.blur();
+        }
+
+        if (e.code === 'KeyW' || e.code === 'KeyS' || e.code === 'ArrowUp' || e.code === 'ArrowDown') {
+          lastPressedAxis = 'y';
+        } else {
+          lastPressedAxis = 'x';
+        }
+
+        activeKeys.add(e.code);
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (NAV_KEYS.has(e.code)) {
+        e.preventDefault();
+        activeKeys.delete(e.code);
+      }
+    });
+
+    // Immediate cleanup on focus loss or window blur
+    window.addEventListener('blur', () => activeKeys.clear());
+    window.addEventListener('focus', () => activeKeys.clear());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) activeKeys.clear();
+    });
+    window.addEventListener('contextmenu', () => activeKeys.clear());
+
+    function handleContinuousKeyboardInput() {
+      if (activeKeys.size === 0) return;
+
+      let vx = 0;
+      let vy = 0;
+      const speed = 4.2;
+
+      const left  = activeKeys.has('ArrowLeft')  || activeKeys.has('KeyA');
+      const right = activeKeys.has('ArrowRight') || activeKeys.has('KeyD');
+      const up    = activeKeys.has('ArrowUp')    || activeKeys.has('KeyW');
+      const down  = activeKeys.has('ArrowDown')  || activeKeys.has('KeyS');
+
+      if (left && !right) vx = -speed;
+      else if (right && !left) vx = speed;
+
+      if (up && !down) vy = -speed;
+      else if (down && !up) vy = speed;
+
+      // Orthogonal Lock: guarantees pure horizontal or vertical lines without diagonal slips
+      if (orthogonalLock && vx !== 0 && vy !== 0) {
+        if (lastPressedAxis === 'y') vx = 0;
+        else vy = 0;
+      }
+
+      if (vx !== 0 || vy !== 0) {
+        const nextX = Math.max(16, Math.min(PW - 16, stylusX + vx));
+        const nextY = Math.max(16, Math.min(PH - 16, stylusY + vy));
+
+        scratchSegment(stylusX, stylusY, nextX, nextY);
+        renderPowderScreen();
+        if (screenTexture) screenTexture.needsUpdate = true;
+        updateTelemetryHUD();
+      }
+    }
+
+    // =========================================================================
+    // 5. Classic Art Presets & Eulerian Vector Plotter
+    // =========================================================================
     function drawArtPreset(presetKey) {
       resetPowderBuffer();
       const path = [];
 
       if (presetKey === 'spirograph') {
-        // Continuous Spirograph Hypotrochoid
-        const R = 220, r = 78, d = 110;
         const cx = PW / 2, cy = PH / 2;
-        path.push({ x: cx + R - r + d, y: cy });
-
+        const R = 210, r = 78, p = 65;
         const totalSteps = 1200;
-        const maxT = Math.PI * 2 * 39;
         for (let i = 0; i <= totalSteps; i++) {
-          const t = (i / totalSteps) * maxT;
-          const x = cx + (R - r) * Math.cos(t) + d * Math.cos((R - r) * t / r);
-          const y = cy + (R - r) * Math.sin(t) - d * Math.sin((R - r) * t / r);
+          const t = (i / totalSteps) * Math.PI * 2 * 13;
+          const x = cx + (R - r) * Math.cos(t) + p * Math.cos((R - r) * t / r);
+          const y = cy + (R - r) * Math.sin(t) - p * Math.sin((R - r) * t / r);
           path.push({ x, y });
         }
       } else if (presetKey === 'house') {
-        // Iconic 1960s Ohio Art House demonstration (single unbroken line)
-        const cx = PW / 2, cy = PH / 2 + 50;
-        const w = 320, h = 220;
+        const cx = PW / 2, cy = PH / 2 + 100;
+        const w = 290, h = 180;
         path.push(
           { x: cx - w/2, y: cy },
-          { x: cx - w/2, y: cy - h },
-          { x: cx, y: cy - h - 100 },      // Roof apex
-          { x: cx + w/2, y: cy - h },
-          { x: cx + w/2, y: cy },
-          { x: cx - w/2, y: cy },          // Floor
-          { x: cx + w/2, y: cy - h },      // Cross beam
-          { x: cx - w/2, y: cy - h },
-          { x: cx + w/2, y: cy },          // Other cross
+          { x: cx + w/2, y: cy },          // Base
+          { x: cx + w/2, y: cy - h },      // Right wall
+          { x: cx - w/2, y: cy - h },      // Ceiling
+          { x: cx, y: cy - h - 100 },      // Roof Peak
+          { x: cx + w/2, y: cy - h },      // Roof Right
+          { x: cx - w/2, y: cy },          // Cross brace 1
+          { x: cx - w/2, y: cy - h },      // Left wall
+          { x: cx + w/2, y: cy },          // Cross brace 2
           { x: cx + 70, y: cy },
           { x: cx + 70, y: cy - 90 },      // Door
           { x: cx + 20, y: cy - 90 },
@@ -1213,7 +1384,6 @@
           { x: cx + 110, y: cy - h - 15 }
         );
       } else if (presetKey === 'lissajous') {
-        // Lissajous resonance
         const cx = PW / 2, cy = PH / 2;
         const totalSteps = 1000;
         for (let i = 0; i <= totalSteps; i++) {
@@ -1228,7 +1398,6 @@
         tCan.width = 160; tCan.height = 120;
         const tCtx = tCan.getContext('2d');
 
-        // Draw portrait silhouette
         tCtx.fillStyle = '#ffffff'; tCtx.fillRect(0,0,160,120);
         tCtx.fillStyle = '#000000';
         tCtx.beginPath(); tCtx.arc(80, 50, 32, 0, Math.PI*2); tCtx.fill(); // Head
@@ -1251,8 +1420,6 @@
       }
 
       currentEulerianPath = path;
-
-      // Batch scratch onto powder
       for (let i = 0; i < path.length - 1; i++) {
         scratchSegment(path[i].x, path[i].y, path[i+1].x, path[i+1].y);
       }
@@ -1323,40 +1490,33 @@
     };
 
     // =========================================================================
-    // 4. Smooth Continuous Keyboard Game Loop (Bug 6 Fix)
+    // 6. Refined Physics Shaking Animation & Beads Erasing
     // =========================================================================
-    const keysDown = {};
-    window.addEventListener('keydown', (e) => {
-      keysDown[e.key.toLowerCase()] = true;
-    });
-    window.addEventListener('keyup', (e) => {
-      keysDown[e.key.toLowerCase()] = false;
-    });
+    let isShaking = false;
+    let shakeStartTime = 0;
+    const SHAKE_DURATION = 1500; // 1.5s damped physical rocking
 
-    function handleContinuousKeyboardInput() {
-      let vx = 0;
-      let vy = 0;
-      const speed = 4.5; // pixels per frame at 60 FPS
+    function startShakeAnimation() {
+      if (isShaking) return;
+      isShaking = true;
+      shakeStartTime = performance.now();
 
-      if (keysDown['arrowleft']  || keysDown['a']) vx -= speed;
-      if (keysDown['arrowright'] || keysDown['d']) vx += speed;
-      if (keysDown['arrowup']    || keysDown['w']) vy -= speed;
-      if (keysDown['arrowdown']  || keysDown['s']) vy += speed;
-
-      if (vx !== 0 || vy !== 0) {
-        const nextX = Math.max(16, Math.min(PW - 16, stylusX + vx));
-        const nextY = Math.max(16, Math.min(PH - 16, stylusY + vy));
-
-        scratchSegment(stylusX, stylusY, nextX, nextY);
-        renderPowderScreen();
-        if (screenTexture) screenTexture.needsUpdate = true;
-        updateTelemetryHUD();
+      // Launch beads violently upward with dynamic variance
+      for (const bp of beadsPhysics) {
+        bp.vx = (Math.random() - 0.5) * 480;
+        bp.vy = 260 + Math.random() * 520;
+        bp.vz = (Math.random() - 0.5) * 110;
       }
     }
 
+    document.getElementById('btnShakeToy').onclick = startShakeAnimation;
+    document.getElementById('btnDockShake').onclick = startShakeAnimation;
+    document.getElementById('btnResetPowder').onclick = resetPowderBuffer;
+
     // =========================================================================
-    // 5. UI Events & Sliders
+    // 7. UI Controls, Sliders & Tab Handlers
     // =========================================================================
+    // Sidebar Tabs
     document.querySelectorAll('.nav-btn').forEach(btn => {
       btn.onclick = () => {
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -1366,6 +1526,16 @@
         document.getElementById('paneToy').style.display     = tab === 'toy' ? 'block' : 'none';
         document.getElementById('paneCutaway').style.display = tab === 'cutaway' ? 'block' : 'none';
         document.getElementById('panePlotter').style.display = tab === 'plotter' ? 'block' : 'none';
+
+        const titles = {
+          toy: '🎮 인터랙티브 조작',
+          cutaway: '🔬 US Patent 3,055,113 분해도',
+          plotter: '🎨 오일러 벡터 플로터'
+        };
+        document.getElementById('sidebarTitle').textContent = titles[tab];
+
+        // Ensure sidebar is open when switching tabs
+        document.getElementById('studioSidebar').classList.remove('collapsed');
 
         if (tab === 'cutaway') {
           document.getElementById('sliderExplode').value = 45;
@@ -1378,6 +1548,27 @@
         }
       };
     });
+
+    // Sidebar Toggle
+    document.getElementById('btnToggleSidebar').onclick = () => {
+      document.getElementById('studioSidebar').classList.toggle('collapsed');
+    };
+    document.getElementById('btnCloseSidebar').onclick = () => {
+      document.getElementById('studioSidebar').classList.add('collapsed');
+    };
+
+    // Orthogonal Lock Mode Switches
+    function setOrthoMode(locked) {
+      orthogonalLock = locked;
+      document.getElementById('btnModeOrtho').classList.toggle('active', locked);
+      document.getElementById('btnModeFree').classList.toggle('active', !locked);
+      document.getElementById('btnDockLock').textContent = locked ? '🔒 직교 잠금: ON' : '🔓 직교 잠금: OFF';
+      document.getElementById('btnDockLock').style.color = locked ? 'var(--gold)' : 'var(--text-muted)';
+    }
+
+    document.getElementById('btnModeOrtho').onclick = () => setOrthoMode(true);
+    document.getElementById('btnModeFree').onclick = () => setOrthoMode(false);
+    document.getElementById('btnDockLock').onclick = () => setOrthoMode(!orthogonalLock);
 
     // Sliders
     const sliderDialX = document.getElementById('sliderDialX');
@@ -1394,10 +1585,6 @@
       if (screenTexture) screenTexture.needsUpdate = true;
       updateTelemetryHUD();
     };
-
-    document.getElementById('btnShakeToy').onclick = startShakeAnimation;
-    document.getElementById('btnDockShake').onclick = startShakeAnimation;
-    document.getElementById('btnResetPowder').onclick = resetPowderBuffer;
 
     const sliderExplode = document.getElementById('sliderExplode');
     sliderExplode.oninput = () => {
@@ -1429,7 +1616,7 @@
       controls.target.set(x3d, y3d, 12);
     };
 
-    // Preset Rendering
+    // Preset Rendering Button
     document.getElementById('btnDrawPreset').onclick = () => {
       drawArtPreset(document.getElementById('selArtPreset').value);
     };
@@ -1444,12 +1631,6 @@
     document.getElementById('sliderBurr').oninput = (e) => {
       burrPower = parseFloat(e.target.value);
       document.getElementById('lblBurr').textContent = burrPower.toFixed(1);
-    };
-    document.getElementById('selGlass').onchange = (e) => {
-      glassRefractionOn = e.target.value === '1';
-      document.getElementById('lblGlass').textContent = glassRefractionOn ? 'ON' : 'OFF';
-      renderPowderScreen();
-      if (screenTexture) screenTexture.needsUpdate = true;
     };
     document.getElementById('selHumanize').onchange = (e) => {
       humanizeOn = e.target.value === '1';
@@ -1494,7 +1675,7 @@
     });
 
     // =========================================================================
-    // 6. 60 FPS Animation Loop
+    // 8. 60 FPS Main Animation Loop (Kinematics + Bead Physics)
     // =========================================================================
     resetPowderBuffer();
     sync3DKinematics();
@@ -1503,38 +1684,105 @@
     function animate() {
       requestAnimationFrame(animate);
 
-      // Handle continuous keyboard movement
+      // 1. Continuous Keyboard Input
       handleContinuousKeyboardInput();
 
-      // Shake animation physics
+      // 2. Realistic Harmonic Shaking Simulation
+      let shakeAccX = 0;
+      let shakeAccY = 0;
+
       if (isShaking) {
-        shakeFrame--;
-        const mag = (shakeFrame / 48.0) * 14.0;
-        rootAssembly.position.x = (Math.random() - 0.5) * mag;
-        rootAssembly.position.y = (Math.random() - 0.5) * mag;
-        rootAssembly.rotation.z = (Math.random() - 0.5) * 0.08 * (shakeFrame / 48.0);
+        const elapsed = performance.now() - shakeStartTime;
+        const progress = Math.min(1.0, elapsed / SHAKE_DURATION);
 
-        for (let i = 0; i < beads.length; i++) {
-          beads[i].position.x += (Math.random() - 0.5) * 20.0;
-          beads[i].position.y += Math.random() * 16.0;
-          if (beads[i].position.y > SCR_H / 2 + SCR_OFFSET_Y) {
-            beads[i].position.y = -SCR_H / 2 + SCR_OFFSET_Y;
-          }
-        }
-
-        for (let i = 0; i < scratchDepth.length; i += 2) {
-          scratchDepth[i] *= 0.86;
-        }
-
-        renderPowderScreen();
-        if (screenTexture) screenTexture.needsUpdate = true;
-
-        if (shakeFrame <= 0) {
+        if (progress >= 1.0) {
           isShaking = false;
           rootAssembly.position.set(0, 0, 0);
           rootAssembly.rotation.set(0, 0, 0);
           resetPowderBuffer();
+        } else {
+          // Graceful damped sinusoidal rocking (3 gentle harmonic swings)
+          const decay = Math.exp(-progress * 3.2);
+          const freq = 16.0;
+          const osc = Math.sin(progress * Math.PI * freq) * decay;
+
+          rootAssembly.position.x = osc * 14.0;
+          rootAssembly.position.y = Math.cos(progress * Math.PI * freq) * decay * 8.0;
+          rootAssembly.rotation.z = osc * 0.08;
+          rootAssembly.rotation.x = Math.sin(progress * Math.PI * 4) * decay * 0.05;
+
+          shakeAccX = -osc * 900.0;
+          shakeAccY = Math.cos(progress * Math.PI * freq) * decay * 800.0;
+
+          // Progressive powder scratch clearing
+          const fade = 0.94;
+          for (let i = 0; i < scratchDepth.length; i += 4) {
+            scratchDepth[i] *= fade;
+          }
         }
+      }
+
+      // 3. Dynamic 3D Polystyrene Bead Physics Update
+      const dt = 0.016;
+      const gravity = -550.0;
+      const restitution = 0.52;
+      const minX = -sw2 + 4, maxX = sw2 - 4;
+      const minY = -sh2 + SCR_OFFSET_Y + 4, maxY = sh2 + SCR_OFFSET_Y - 4;
+      const minZ = -7.5, maxZ = 11.2;
+
+      let screenErasedByBeads = false;
+
+      for (let i = 0; i < BEAD_COUNT; i++) {
+        const bp = beadsPhysics[i];
+
+        bp.vx += shakeAccX * dt;
+        bp.vy += (gravity + shakeAccY) * dt;
+
+        bp.vx *= 0.985;
+        bp.vy *= 0.985;
+        bp.vz *= 0.985;
+
+        bp.x += bp.vx * dt;
+        bp.y += bp.vy * dt;
+        bp.z += bp.vz * dt;
+
+        if (bp.x < minX) { bp.x = minX; bp.vx = -bp.vx * restitution; }
+        else if (bp.x > maxX) { bp.x = maxX; bp.vx = -bp.vx * restitution; }
+
+        if (bp.y < minY) {
+          bp.y = minY;
+          bp.vy = -bp.vy * restitution;
+          bp.vx *= 0.88; // friction on bottom ledge
+        } else if (bp.y > maxY) {
+          bp.y = maxY;
+          bp.vy = -bp.vy * restitution;
+        }
+
+        if (bp.z < minZ) { bp.z = minZ; bp.vz = -bp.vz * restitution; }
+        else if (bp.z > maxZ) { bp.z = maxZ; bp.vz = -bp.vz * restitution; }
+
+        // Active screen powder clearing on glass contact
+        if (isShaking && bp.z > 7.0 && bp.y > minY + 10) {
+          const scrX = Math.round(((bp.x + sw2) / SCR_W) * PW);
+          const scrY = Math.round(((-bp.y + sh2 + SCR_OFFSET_Y) / SCR_H) * PH);
+
+          if (scrX >= 3 && scrX < PW - 3 && scrY >= 3 && scrY < PH - 3) {
+            for (let dy = -2; dy <= 2; dy++) {
+              const row = (scrY + dy) * PW;
+              for (let dx = -2; dx <= 2; dx++) {
+                scratchDepth[row + scrX + dx] *= 0.65;
+              }
+            }
+            screenErasedByBeads = true;
+          }
+        }
+
+        beads[i].position.set(bp.x, bp.y, bp.z);
+      }
+
+      if (screenErasedByBeads) {
+        renderPowderScreen();
+        if (screenTexture) screenTexture.needsUpdate = true;
       }
 
       sync3DKinematics();
