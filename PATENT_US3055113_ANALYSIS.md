@@ -57,4 +57,4 @@
 ---
 
 ## 3. Eulerian Polyline Topology (Pen Lifts: 0)
-Because the stylus cannot be mechanically lifted from the glass, all multi-component graphics (such as Bad Apple frames) must be routed along the outer bezel frame edges ($y=0$ or $y=H-1$), hidden within the chassis bevel shadow.
+Because the stylus cannot be mechanically lifted from the glass, all multi-component graphics (such as multi-contour drawings or disconnected shapes) must be routed along the outer bezel frame edges ($y=0$ or $y=H-1$), hidden within the chassis bevel shadow.
