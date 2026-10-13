@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Etch A Sketch Mechanics & Bad Apple Lab // US Patent 3,055,113</title>
+  <style>
+    :root {
+      --bg: #0f1013;
+      --card-bg: rgba(22, 24, 29, 0.85);
+      --border: #282c35;
+      --accent: #dc2626;
+      --gold: #f59e0b;
+      --steel: #94a3b8;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --green: #22c55e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      user-select: none;
+    }
+
+    /* 3D WebGL Canvas */
+    #webgl-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 1;
+    }
+
+    /* Offscreen Physical Powder Screen Canvas */
+    #powderCanvas { display: none; }
+
+    /* Top Navigation Header */
+    header {
+      position: absolute;
+      top: 0; left: 0; width: 100%;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      background: linear-gradient(180deg, rgba(15,16,19,0.95) 0%, rgba(15,16,19,0) 100%);
+      pointer-events: none;
+    }
+    .header-left, .header-right { pointer-events: auto; display: flex; align-items: center; gap: 12px; }
+    h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h1 .badge-pat {
+      font-size: 11px;
+      font-family: monospace;
+      padding: 3px 8px;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      border-radius: 4px;
+    }
+    .nav-tabs {
+      display: flex;
+      background: rgba(30, 33, 40, 0.8);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 3px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover { color: #fff; background: rgba(255,255,255,0.06); }
+    .tab-btn.active { color: #fff; background: #b91c1c; }
+
+    /* Left Control Sidebar */
+    .sidebar {
+      position: absolute;
+      top: 76px; left: 24px;
+      width: 330px;
+      z-index: 10;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      backdrop-filter: blur(16px);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .sidebar-section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+      margin-bottom: 4px;
+    }
+    .ctrl-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .ctrl-label {
+      font-size: 12px;
+      color: #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+    }
+    .ctrl-val { font-family: monospace; color: var(--gold); }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--gold);
+      background: #1e222a;
+      height: 6px;
+      border-radius: 3px;
+    }
+    select {
+      background: #181b22;
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      outline: none;
+      width: 100%;
+    }
+    .btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    button.action-btn {
+      padding: 9px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #252a36;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+    button.action-btn:hover { background: #323849; }
+    button.action-btn.danger {
+      background: #991b1b;
+      border-color: #dc2626;
+    }
+    button.action-btn.danger:hover { background: #dc2626; }
+    button.action-btn.gold {
+      background: #92400e;
+      border-color: #f59e0b;
+    }
+    button.action-btn.gold:hover { background: #b45309; }
+
+    /* Right Telemetry & CRT Monitor */
+    .cockpit-panel {
+      position: absolute;
+      top: 76px; right: 24px;
+      width: 320px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      pointer-events: auto;
+    }
+    .crt-monitor {
+      background: #090a0d;
+      border: 2px solid #2a2e39;
+      border-radius: 10px;
+      padding: 8px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+    }
+    .crt-monitor::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 3px, 6px 100%;
+      pointer-events: none;
+    }
+    .crt-header {
+      font-size: 10px;
+      font-family: monospace;
+      color: var(--green);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+    #crtCanvas {
+      width: 100%;
+      height: 180px;
+      background: #000;
+      border-radius: 4px;
+      display: block;
+    }
+    .telemetry-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .telemetry-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .telemetry-row:last-child { border-bottom: none; }
+    .tel-key { color: var(--text-muted); }
+    .tel-val { font-family: monospace; color: #fff; font-weight: 600; }
+    .tel-val.green { color: var(--green); }
+    .tel-val.gold { color: var(--gold); }
+
+    /* Bottom 3D Knobs Interactive Overlay for Touch/Click */
+    .knob-overlay {
+      position: absolute;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex;
+      gap: 300px;
+      pointer-events: none;
+    }
+    .knob-helper {
+      pointer-events: auto;
+      background: rgba(22, 24, 29, 0.85);
+      border: 1px solid var(--border);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #e2e8f0;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+    }
+
+    /* Modal / Patent Info Box */
+    .patent-modal {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 580px;
+      max-width: 90vw;
+      background: #171920;
+      border: 1px solid var(--gold);
+      border-radius: 12px;
+      padding: 24px;
+      z-index: 50;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+      display: none;
+    }
+    .patent-modal.open { display: block; }
+    .modal-close {
+      position: absolute;
+      top: 14px; right: 16px;
+      background: none; border: none;
+      color: var(--text-muted); font-size: 20px;
+      cursor: pointer;
+    }
+    .modal-close:hover { color: #fff; }
+    .modal-title {
+      font-size: 16px;
+      color: var(--gold);
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+    .modal-body {
+      font-size: 13px;
+      line-height: 1.6;
+      color: #cbd5e1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Three.js 3D WebGL Canvas -->
+  <div id="webgl-canvas"></div>
+
+  <!-- Offscreen 2D Powder Canvas (1024 x 768) -->
+  <canvas id="powderCanvas" width="1024" height="768"></canvas>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="header-left">
+      <h1>
+        MAGIC <span>Etch A Sketch</span> 3D LAB
+        <span class="badge-pat">US PAT. 3,055,113</span>
+      </h1>
+    </div>
+
+    <div class="header-right">
+      <div class="nav-tabs">
+        <button class="tab-btn active" data-tab="play">🎮 실물 에뮬레이터</button>
+        <button class="tab-btn" data-tab="cutaway">🔬 기구학 분해도/단면도</button>
+        <button class="tab-btn" data-tab="badapple">🍎 Bad Apple!! + 스크린톤</button>
+      </div>
+      <button id="btnInfo" class="action-btn" style="padding: 7px 12px; font-size:12px;">📖 특허 해설</button>
+    </div>
+  </header>
+
+  <!-- Left Control Sidebar -->
+  <div class="sidebar" id="sidebar">
+
+    <!-- TAB 1: PLAY MODE CONTROLS -->
+    <div class="tab-content" id="tabContentPlay">
+      <div class="sidebar-section-title">조작 및 드로잉 암 제어</div>
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span>X축 수평 다이얼 (좌측 노브)</span>
+          <span class="ctrl-val" id="valKnobX">0.0 px</span>
+        </div>
+        <input type="range" id="rngKnobX" min="20" max="1004" value="512" step="1">
+      </div>
+
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span>Y축 수직 다이얼 (우측 노브)</span>
+          <span class="ctrl-val" id="valKnobY">0.0 px</span>
+        </div>
+        <input type="range" id="rngKnobY" min="20" max="748" value="384" step="1">
+      </div>
+
+      <div class="btn-grid" style="margin-top: 6px;">
+        <button class="action-btn danger" id="btnShake">📳 흔들어서 지우기</button>
+        <button class="action-btn" id="btnResetView">🎥 카메라 리셋</button>
+      </div>
+
+      <div class="sidebar-section-title" style="margin-top: 14px;">물리 광학 및 분말 간섭</div>
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span>드로잉 암 십자 음영 (Crosshair Shadow)</span>
+          <span class="ctrl-val" id="valArmShadow">ON</span>
+        </div>
+        <select id="selArmShadow">
+          <option value="1">활성화 (특허 실물 광학 간섭)</option>
+          <option value="0">비활성화 (가상 이상 뷰)</option>
+        </select>
+      </div>
+
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span>분말 밀림 버(Burr) 융기 강도</span>
+          <span class="ctrl-val" id="valBurr">55.0</span>
+        </div>
+        <input type="range" id="rngBurr" min="0" max="100" value="55" step="1">
+      </div>
+
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span>유리 굴절 및 스펙큘러 조명 글레어</span>
+          <span class="ctrl-val" id="valGlare">ON</span>
+        </div>
+        <select id="selGlare">
+          <option value="1">2.5mm 소다라임 유리 물리</option>
+          <option value="0">반사 제거</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- TAB 2: CUTAWAY / EXPLODED MODE CONTROLS -->
+    <div class="tab-content" id="tabContentCutaway" style="display:none;">
+      <div class="sidebar-section-title">US Patent 3,055,113 분해 전개도</div>
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span>3D 폭발 분해도 (Exploded View)</span>
+          <span class="ctrl-val" id="valExplode">0%</span>
+        </div>
+        <input type="range" id="rngExplode" min="0" max="100" value="0" step="1">
+      </div>
+
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span>상부 섀시 투명도 (X-Ray Cutaway)</span>
+          <span class="ctrl-val" id="valXray">0%</span>
+        </div>
+        <input type="range" id="rngXray" min="0" max="95" value="0" step="1">
+      </div>
+
+      <div class="sidebar-section-title" style="margin-top: 14px;">기구학 부품별 포커스</div>
+      <div class="btn-grid">
+        <button class="action-btn" id="btnFocusRods">🔩 강철 가이드 로드</button>
+        <button class="action-btn" id="btnFocusCarriage">🟨 황동 캐리지</button>
+        <button class="action-btn" id="btnFocusCables">🪢 엔드리스 와이어</button>
+        <button class="action-btn" id="btnFocusGlass">🪟 유리 및 분말층</button>
+      </div>
+    </div>
+
+    <!-- TAB 3: BAD APPLE CONTROLS -->
+    <div class="tab-content" id="tabContentBadApple" style="display:none;">
+      <div class="sidebar-section-title">Bad Apple!! 오일러 시뮬레이터</div>
+
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span>스크린톤 렌더링 엔진 (light-screentone)</span>
+        </div>
+        <select id="selScreentone">
+          <option value="boustrophedon">부스트로페돈 해칭 (Continuous Polyline)</option>
+          <option value="dot">도트 하프톤 매트릭스 (Halftone Dot)</option>
+          <option value="line">라인 스크린톤 30° (Line Hatching)</option>
+          <option value="cross">크로스해칭 45° (Crosshatch Grid)</option>
+          <option value="bayer8">오더드 디더링 (Bayer 8x8)</option>
+        </select>
+      </div>
+
+      <div class="ctrl-row">
+        <div class="ctrl-label">
+          <span>재생 프레임 진행</span>
+          <span class="ctrl-val" id="valBaFrame">Frame 0 / 20</span>
+        </div>
+        <input type="range" id="rngBaFrame" min="0" max="19" value="0" step="1">
+      </div>
+
+      <div class="btn-grid" style="margin-top: 8px;">
+        <button class="action-btn gold" id="btnBaPlay">▶️ 재생 시작</button>
+        <button class="action-btn" id="btnBaAudio">🔊 신시사이저 On</button>
+      </div>
+
+      <div class="ctrl-row" style="margin-top: 8px;">
+        <div class="ctrl-label">
+          <span>재생 속도 (Playback Rate)</span>
+          <span class="ctrl-val" id="valSpeed">1.0x</span>
+        </div>
+        <input type="range" id="rngSpeed" min="0.2" max="3.0" value="1.0" step="0.1">
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right Telemetry & CRT Monitor -->
+  <div class="cockpit-panel">
+    <!-- Synchronized CRT Monitor -->
+    <div class="crt-monitor">
+      <div class="crt-header">
+        <span>SOURCE CRT // 1:1 GROUND TRUTH</span>
+        <span id="crtStatus" style="color:var(--gold);">IDLE</span>
+      </div>
+      <canvas id="crtCanvas" width="320" height="240"></canvas>
+    </div>
+
+    <!-- Live Telemetry Card -->
+    <div class="telemetry-card">
+      <div class="sidebar-section-title" style="margin-bottom: 8px;">기구학 텔레메트리 HUD</div>
+      <div class="telemetry-row">
+        <span class="tel-key">PATENT SPEC</span>
+        <span class="tel-val gold">US 3,055,113 (Grandjean)</span>
+      </div>
+      <div class="telemetry-row">
+        <span class="tel-key">DRIVE RAILS</span>
+        <span class="tel-val">Orthogonal 11 (H) & 12 (V)</span>
+      </div>
+      <div class="telemetry-row">
+        <span class="tel-key">LINE TOPOLOGY</span>
+        <span class="tel-val green">100% Eulerian (Pen Lifts: 0)</span>
+      </div>
+      <div class="telemetry-row">
+        <span class="tel-key">STYLUS COORD</span>
+        <span class="tel-val" id="telStylus">X: 512 | Y: 384</span>
+      </div>
+      <div class="telemetry-row">
+        <span class="tel-key">KNOB ROTATION</span>
+        <span class="tel-val" id="telKnobs">L: 0° | R: 0°</span>
+      </div>
+      <div class="telemetry-row">
+        <span class="tel-key">SCRAPED POWDER</span>
+        <span class="tel-val" id="telPowder">0.00% Area</span>
+      </div>
+      <div class="telemetry-row">
+        <span class="tel-key">CABLE TENSION</span>
+        <span class="tel-val green">0.42 N (Nominal)</span>
+      </div>
+      <div class="telemetry-row">
+        <span class="tel-key">GLASS REFRACTION</span>
+        <span class="tel-val">2.5mm Soda-Lime (n=1.52)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Knob Guidance -->
+  <div class="knob-overlay">
+    <div class="knob-helper">
+      <span>⚙️ X축 수평 제어 노브</span>
+    </div>
+    <div class="knob-helper">
+      <span>⚙️ Y축 수직 제어 노브</span>
+    </div>
+  </div>
+
+  <!-- Patent Details Modal -->
+  <div class="patent-modal" id="patentModal">
+    <button class="modal-close" id="btnModalClose">&times;</button>
+    <div class="modal-title">US Patent 3,055,113: 기계식 트레이싱 장치 원리</div>
+    <div class="modal-body">
+      <p><strong>1. 직교 강철 레일 기구학 (Orthogonal Steel Rails 11 & 12):</strong><br>
+      에치 어 스케치는 수평 가이드 로드(11)와 수직 가이드 로드(12)가 유리판 바로 뒤에서 서로 교차하며 슬라이딩합니다. 교차점에 위치한 황동 스타일러스 캐리지가 유리 이면에 도포된 알루미늄 분말을 긁어내어 선을 형성합니다.</p>
+      <br>
+      <p><strong>2. 드로잉 암의 필연적 광학 간섭 (Drawing Arm Interference):</strong><br>
+      강철 레일이 유리판 바로 뒤(1.5~2mm)에 위치하기 때문에, 분말층을 투과하는 은은한 십자형 내부 그림자(Crosshair Shadow)가 항상 비치며, 분말이 긁혀나간 투명한 창을 통해서는 밝은 금속성 강철 로드의 반사가 직접 교차 노출됩니다.</p>
+      <br>
+      <p><strong>3. 정전기 알루미늄 분말 및 비즈 (Powder & Polystyrene Beads):</strong><br>
+      내부에는 초미세 알루미늄 가루와 작은 폴리스티렌 구슬이 함께 봉입되어 있습니다. 본체를 흔들면(Shake to Erase) 구슬들이 챔버 내부를 구르며 분말을 정전기로 다시 유리면에 균일하게 재도포합니다.</p>
+    </div>
+  </div>
+
+  <!-- Standalone Libraries -->
+  <script src="three.min.js"></script>
+  <script src="OrbitControls.js"></script>
+  <script src="light-screentone.js"></script>
+  <script src="bad_apple_data.js"></script>
+
+  <script>
+    // =========================================================================
+    // 1. Canvas 2D Physical Powder Screen Simulator
+    // =========================================================================
+    const pCanvas = document.getElementById('powderCanvas');
+    const pCtx = pCanvas.getContext('2d');
+    const PW = pCanvas.width;
+    const PH = pCanvas.height;
+
+    // Scratch depth buffer (Float32)
+    const scratchDepth = new Float32Array(PW * PH);
+    let stylusX = 512;
+    let stylusY = 384;
+    let knobAngleX = 0;
+    let knobAngleY = 0;
+    let armShadowEnabled = true;
+    let burrIntensity = 55.0;
+    let glareEnabled = true;
+
+    // Reset powder buffer to pure silver aluminum powder
+    function resetPowder() {
+      scratchDepth.fill(0);
+      renderPowderScreen();
+    }
+
+    function renderPowderScreen() {
+      // 1. Base aluminum powder background
+      pCtx.fillStyle = '#c6c8cc';
+      pCtx.fillRect(0, 0, PW, PH);
+
+      // Powder micro-grain noise
+      const imgData = pCtx.getImageData(0, 0, PW, PH);
+      const data = imgData.data;
+
+      // 2. Crosshair Arm Shadow through powder if enabled
+      const rodIx = Math.floor(stylusX);
+      const rodIy = Math.floor(stylusY);
+
+      for (let y = 0; y < PH; y++) {
+        const rowOff = y * PW;
+        const dy = Math.abs(y - rodIy);
+        const shadowY = armShadowEnabled ? Math.max(0, 1.0 - dy / 18.0) * 0.12 : 0;
+
+        for (let x = 0; x < PW; x++) {
+          const idx = (rowOff + x) * 4;
+          const dx = Math.abs(x - rodIx);
+          const shadowX = armShadowEnabled ? Math.max(0, 1.0 - dx / 18.0) * 0.12 : 0;
+          const totalArmShadow = shadowX + shadowY;
+
+          const depth = scratchDepth[rowOff + x];
+
+          if (depth > 0.05) {
+            // Scraped area reveals rear dark chamber (#1a1918)
+            // AND if rod passes directly behind this scraped pixel, reveal steel/brass reflection!
+            let rCav = 28, gCav = 26, bCav = 25;
+
+            // Direct steel rod reflection through cleared groove
+            if (dx < 7) {
+              // Vertical Rod 12 reflection
+              const spec = (1.0 - dx / 7.0);
+              rCav = 110 + spec * 75;
+              gCav = 115 + spec * 75;
+              bCav = 122 + spec * 75;
+            } else if (dy < 7) {
+              // Horizontal Rod 11 reflection
+              const spec = (1.0 - dy / 7.0);
+              rCav = 105 + spec * 75;
+              gCav = 110 + spec * 75;
+              bCav = 118 + spec * 75;
+            }
+
+            // Brass carriage reflection at intersection
+            if (dx < 14 && dy < 14) {
+              rCav = 180; gCav = 145; bCav = 45;
+            }
+
+            // Incomplete scraping haze: mix 12% silver dust
+            const finalR = rCav * 0.88 + 198 * 0.12;
+            const finalG = gCav * 0.88 + 200 * 0.12;
+            const finalB = bCav * 0.88 + 204 * 0.12;
+
+            data[idx]     = finalR;
+            data[idx + 1] = finalG;
+            data[idx + 2] = finalB;
+          } else {
+            // Unscraped powder with diffuse internal rod shadow
+            const grain = (Math.random() - 0.5) * 8.0;
+            const alCol = Math.max(0, Math.min(255, (200 + grain) * (1.0 - totalArmShadow)));
+            data[idx]     = alCol;
+            data[idx + 1] = alCol;
+            data[idx + 2] = alCol + 2;
+          }
+        }
+      }
+
+      pCtx.putImageData(imgData, 0, 0);
+
+      // Inner glass frame bevel shadow
+      const gradTop = pCtx.createLinearGradient(0, 0, 0, 20);
+      gradTop.addColorStop(0, 'rgba(40,42,48,0.5)');
+      gradTop.addColorStop(1, 'rgba(40,42,48,0)');
+      pCtx.fillStyle = gradTop;
+      pCtx.fillRect(0, 0, PW, 20);
+
+      const gradLeft = pCtx.createLinearGradient(0, 0, 20, 0);
+      gradLeft.addColorStop(0, 'rgba(40,42,48,0.5)');
+      gradLeft.addColorStop(1, 'rgba(40,42,48,0)');
+      pCtx.fillStyle = gradLeft;
+      pCtx.fillRect(0, 0, 20, PH);
+
+      // Glass specular reflection glare streak if enabled
+      if (glareEnabled) {
+        const diagGrad = pCtx.createLinearGradient(0, 0, PW, PH);
+        diagGrad.addColorStop(0.3, 'rgba(255,255,255,0)');
+        diagGrad.addColorStop(0.38, 'rgba(255,255,255,0.09)');
+        diagGrad.addColorStop(0.46, 'rgba(255,255,255,0)');
+        pCtx.fillStyle = diagGrad;
+        pCtx.fillRect(0, 0, PW, PH);
+      }
+
+      // Active stylus contact point
+      pCtx.beginPath();
+      pCtx.arc(stylusX, stylusY, 4, 0, Math.PI * 2);
+      pCtx.fillStyle = '#222';
+      pCtx.fill();
+      pCtx.strokeStyle = 'rgba(255,255,255,0.8)';
+      pCtx.lineWidth = 1.5;
+      pCtx.stroke();
+    }
+
+    // Move stylus and draw on powder buffer
+    function moveStylusTo(targetX, targetY) {
+      targetX = Math.max(16, Math.min(PW - 16, targetX));
+      targetY = Math.max(16, Math.min(PH - 16, targetY));
+
+      const dx = targetX - stylusX;
+      const dy = targetY - stylusY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      knobAngleX += dx * 0.4;
+      knobAngleY += dy * 0.4;
+
+      const steps = Math.max(1, Math.ceil(dist / 2.0));
+      for (let s = 1; s <= steps; s++) {
+        const cx = Math.floor(stylusX + (dx * s) / steps);
+        const cy = Math.floor(stylusY + (dy * s) / steps);
+
+        // Scratch footprint (3x3 radius)
+        for (let ry = -2; ry <= 2; ry++) {
+          const py = cy + ry;
+          if (py < 0 || py >= PH) continue;
+          for (let rx = -2; rx <= 2; rx++) {
+            const px = cx + rx;
+            if (px < 0 || px >= PW) continue;
+            scratchDepth[py * PW + px] = 1.0;
+          }
+        }
+      }
+
+      stylusX = targetX;
+      stylusY = targetY;
+
+      renderPowderScreen();
+      if (screenTexture) screenTexture.needsUpdate = true;
+      updateTelemetry();
+    }
+
+    // =========================================================================
+    // 2. Three.js 3D Physical Simulation Scene
+    // =========================================================================
+    const container = document.getElementById('webgl-canvas');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0f1013);
+
+    const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 2000);
+    camera.position.set(0, -60, 520);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxDistance = 1000;
+    controls.minDistance = 200;
+
+    // Studio Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+    scene.add(ambientLight);
+
+    const keyLight = new THREE.DirectionalLight(0xfff5e6, 0.9);
+    keyLight.position.set(150, 250, 350);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 2048;
+    keyLight.shadow.mapSize.height = 2048;
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight(0x99ccff, 0.4);
+    rimLight.position.set(-200, -150, 200);
+    scene.add(rimLight);
+
+    // Assembly Groups for Exploded View
+    const rootAssembly = new THREE.Group();
+    scene.add(rootAssembly);
+
+    const layerTopCase = new THREE.Group();
+    const layerGlass = new THREE.Group();
+    const layerScreen = new THREE.Group();
+    const layerMechanics = new THREE.Group();
+    const layerBottomCase = new THREE.Group();
+    const layerBeads = new THREE.Group();
+
+    rootAssembly.add(layerBottomCase);
+    rootAssembly.add(layerBeads);
+    rootAssembly.add(layerMechanics);
+    rootAssembly.add(layerScreen);
+    rootAssembly.add(layerGlass);
+    rootAssembly.add(layerTopCase);
+
+    // Dimensions (Etch A Sketch Scale: 380 x 290 x 42)
+    const TOY_W = 380;
+    const TOY_H = 290;
+    const SCR_W = 270;
+    const SCR_H = 200;
+
+    // Materials
+    const cherryRedMat = new THREE.MeshStandardMaterial({
+      color: 0xba141a,
+      roughness: 0.32,
+      metalness: 0.05,
+      transparent: true,
+      opacity: 1.0
+    });
+
+    const bottomCaseMat = new THREE.MeshStandardMaterial({
+      color: 0x941015,
+      roughness: 0.45,
+      metalness: 0.05
+    });
+
+    const steelRodMat = new THREE.MeshStandardMaterial({
+      color: 0xccd0d5,
+      roughness: 0.22,
+      metalness: 0.88
+    });
+
+    const brassCarriageMat = new THREE.MeshStandardMaterial({
+      color: 0xd4af37,
+      roughness: 0.28,
+      metalness: 0.82
+    });
+
+    const knobMat = new THREE.MeshStandardMaterial({
+      color: 0xf5f6f8,
+      roughness: 0.35,
+      metalness: 0.02
+    });
+
+    // 1. Top Red Chassis with Window Cutout
+    const topShape = new THREE.Shape();
+    const tw2 = TOY_W / 2, th2 = TOY_H / 2, cr = 16;
+    topShape.moveTo(-tw2 + cr, -th2);
+    topShape.lineTo(tw2 - cr, -th2);
+    topShape.quadraticCurveTo(tw2, -th2, tw2, -th2 + cr);
+    topShape.lineTo(tw2, th2 - cr);
+    topShape.quadraticCurveTo(tw2, th2, tw2 - cr, th2);
+    topShape.lineTo(-tw2 + cr, th2);
+    topShape.quadraticCurveTo(-tw2, th2, -tw2, th2 - cr);
+    topShape.lineTo(-tw2, -th2 + cr);
+    topShape.quadraticCurveTo(-tw2, -th2, -tw2 + cr, -th2);
+
+    // Inner Window Hole
+    const hole = new THREE.Path();
+    const sw2 = SCR_W / 2, sh2 = SCR_H / 2;
+    const syOff = 16; // Shift screen slightly up
+    hole.moveTo(-sw2, -sh2 + syOff);
+    hole.lineTo(sw2, -sh2 + syOff);
+    hole.lineTo(sw2, sh2 + syOff);
+    hole.lineTo(-sw2, sh2 + syOff);
+    hole.lineTo(-sw2, -sh2 + syOff);
+    topShape.holes.push(hole);
+
+    const topGeo = new THREE.ExtrudeGeometry(topShape, {
+      depth: 12,
+      bevelEnabled: true,
+      bevelSegments: 4,
+      steps: 1,
+      bevelSize: 3,
+      bevelThickness: 3
+    });
+    const topMesh = new THREE.Mesh(topGeo, cherryRedMat);
+    topMesh.position.z = 12;
+    topMesh.castShadow = true;
+    layerTopCase.add(topMesh);
+
+    // Top Gold Branding Text Plate
+    const goldTexCanvas = document.createElement('canvas');
+    goldTexCanvas.width = 512; goldTexCanvas.height = 64;
+    const gctx = goldTexCanvas.getContext('2d');
+    gctx.fillStyle = '#dc2626'; gctx.fillRect(0,0,512,64);
+    gctx.font = 'bold 26px sans-serif';
+    gctx.fillStyle = '#fbbf24'; gctx.textAlign = 'center';
+    gctx.fillText('MAGIC Etch A Sketch SCREEN', 256, 30);
+    gctx.font = '12px sans-serif'; gctx.fillStyle = '#fef08a';
+    gctx.fillText('OHIO ART CO. - US PAT. 3,055,113', 256, 50);
+    const goldTexture = new THREE.CanvasTexture(goldTexCanvas);
+    const goldPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(160, 20),
+      new THREE.MeshBasicMaterial({ map: goldTexture })
+    );
+    goldPlane.position.set(0, th2 - 18, 15.5);
+    layerTopCase.add(goldPlane);
+
+    // 2. Soda-Lime Glass Plate
+    const glassGeo = new THREE.BoxGeometry(SCR_W + 8, SCR_H + 8, 2.5);
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff,
+      transmission: 0.92,
+      opacity: 1.0,
+      transparent: true,
+      roughness: 0.05,
+      ior: 1.52,
+      reflectivity: 0.5
+    });
+    const glassMesh = new THREE.Mesh(glassGeo, glassMat);
+    glassMesh.position.set(0, syOff, 11);
+    layerGlass.add(glassMesh);
+
+    // 3. Powder Screen Canvas Texture Plane
+    const screenTexture = new THREE.CanvasTexture(pCanvas);
+    screenTexture.minFilter = THREE.LinearFilter;
+    const screenGeo = new THREE.PlaneGeometry(SCR_W, SCR_H);
+    const screenMat = new THREE.MeshBasicMaterial({ map: screenTexture });
+    const screenMesh = new THREE.Mesh(screenGeo, screenMat);
+    screenMesh.position.set(0, syOff, 9.2);
+    layerScreen.add(screenMesh);
+
+    // 4. US Patent 3,055,113 Kinematic Guide Rods & Carriage
+    // Vertical Rod 12 (moves in X)
+    const vertRodGeo = new THREE.CylinderGeometry(1.6, 1.6, SCR_H + 30, 16);
+    const vertRodMesh = new THREE.Mesh(vertRodGeo, steelRodMat);
+    vertRodMesh.rotation.z = 0;
+    vertRodMesh.position.set(0, syOff, 4);
+    layerMechanics.add(vertRodMesh);
+
+    // Horizontal Rod 11 (moves in Y)
+    const horizRodGeo = new THREE.CylinderGeometry(1.6, 1.6, SCR_W + 30, 16);
+    const horizRodMesh = new THREE.Mesh(horizRodGeo, steelRodMat);
+    horizRodMesh.rotation.z = Math.PI / 2;
+    horizRodMesh.position.set(0, syOff, 4);
+    layerMechanics.add(horizRodMesh);
+
+    // Brass Stylus Carriage (Intersection Block)
+    const carriageGeo = new THREE.BoxGeometry(14, 14, 8);
+    const carriageMesh = new THREE.Mesh(carriageGeo, brassCarriageMat);
+    carriageMesh.position.set(0, syOff, 4);
+    layerMechanics.add(carriageMesh);
+
+    // Stylus Pointer Tip
+    const stylusGeo = new THREE.ConeGeometry(2, 4, 12);
+    const stylusMesh = new THREE.Mesh(stylusGeo, brassCarriageMat);
+    stylusMesh.rotation.x = Math.PI;
+    stylusMesh.position.set(0, syOff, 8.5);
+    layerMechanics.add(stylusMesh);
+
+    // Endless Wire Cables
+    const cableMat = new THREE.LineBasicMaterial({ color: 0x475569 });
+    function makeCableBox() {
+      const pts = [
+        new THREE.Vector3(-sw2 - 6, -sh2 + syOff - 6, 2),
+        new THREE.Vector3( sw2 + 6, -sh2 + syOff - 6, 2),
+        new THREE.Vector3( sw2 + 6,  sh2 + syOff + 6, 2),
+        new THREE.Vector3(-sw2 - 6,  sh2 + syOff + 6, 2),
+        new THREE.Vector3(-sw2 - 6, -sh2 + syOff - 6, 2)
+      ];
+      return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), cableMat);
+    }
+    layerMechanics.add(makeCableBox());
+
+    // 4 Corner Pulleys
+    const pulleyGeo = new THREE.CylinderGeometry(4, 4, 3, 16);
+    const pulleyMat = new THREE.MeshStandardMaterial({ color: 0xb45309, metalness: 0.8 });
+    [
+      [-sw2 - 6, -sh2 + syOff - 6],
+      [ sw2 + 6, -sh2 + syOff - 6],
+      [ sw2 + 6,  sh2 + syOff + 6],
+      [-sw2 - 6,  sh2 + syOff + 6]
+    ].forEach(([px, py]) => {
+      const p = new THREE.Mesh(pulleyGeo, pulleyMat);
+      p.rotation.x = Math.PI / 2;
+      p.position.set(px, py, 2);
+      layerMechanics.add(p);
+    });
+
+    // 5. Knurled White Rotary Knobs (3D Dial Wheels)
+    function makeKnobMesh() {
+      const g = new THREE.Group();
+      // Base rim
+      const bGeo = new THREE.CylinderGeometry(26, 26, 8, 32);
+      const b = new THREE.Mesh(bGeo, knobMat);
+      b.rotation.x = Math.PI / 2;
+      g.add(b);
+
+      // Serrated teeth flutes (24 notches)
+      const toothGeo = new THREE.BoxGeometry(2, 4, 8);
+      for (let i = 0; i < 24; i++) {
+        const th = (i * Math.PI * 2) / 24;
+        const t = new THREE.Mesh(toothGeo, knobMat);
+        t.position.set(Math.cos(th) * 25.5, Math.sin(th) * 25.5, 0);
+        t.rotation.z = th;
+        g.add(t);
+      }
+
+      // Indicator dot
+      const dotGeo = new THREE.SphereGeometry(2, 8, 8);
+      const dotMat = new THREE.MeshBasicMaterial({ color: 0xdc2626 });
+      const dot = new THREE.Mesh(dotGeo, dotMat);
+      dot.position.set(16, 0, 4.2);
+      g.add(dot);
+
+      return g;
+    }
+
+    const knobLeft = makeKnobMesh();
+    knobLeft.position.set(-115, -th2 + 38, 16);
+    layerTopCase.add(knobLeft);
+
+    const knobRight = makeKnobMesh();
+    knobRight.position.set(115, -th2 + 38, 16);
+    layerTopCase.add(knobRight);
+
+    // 6. Bottom Chassis Tray
+    const botGeo = new THREE.BoxGeometry(TOY_W - 6, TOY_H - 6, 24);
+    const botMesh = new THREE.Mesh(botGeo, bottomCaseMat);
+    botMesh.position.set(0, 0, -12);
+    layerBottomCase.add(botMesh);
+
+    // 7. Polystyrene Circulation Beads (Particles at bottom)
+    const beadCount = 90;
+    const beadGeo = new THREE.SphereGeometry(2.2, 8, 8);
+    const beadMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 });
+    const beads = [];
+    for (let i = 0; i < beadCount; i++) {
+      const b = new THREE.Mesh(beadGeo, beadMat);
+      b.position.set(
+        (Math.random() - 0.5) * (SCR_W - 20),
+        -sh2 + syOff + Math.random() * 25,
+        Math.random() * 6 - 2
+      );
+      b.userData.vx = (Math.random() - 0.5) * 2;
+      b.userData.vy = Math.random() * 4;
+      layerBeads.add(b);
+      beads.push(b);
+    }
+
+    // Exploded View Slider Update
+    function updateExplodedView(ratio) {
+      // ratio: 0.0 (assembled) .. 1.0 (fully exploded)
+      layerTopCase.position.z    =  110 * ratio;
+      layerGlass.position.z      =   55 * ratio;
+      layerScreen.position.z     =    0;
+      layerMechanics.position.z  =  -45 * ratio;
+      layerBeads.position.z      =  -75 * ratio;
+      layerBottomCase.position.z = -120 * ratio;
+    }
+
+    // Sync 3D Kinematics with 2D Stylus Coordinates
+    function update3DKinematics() {
+      // Map 2D (0..PW, 0..PH) to 3D Screen coords (-sw2..sw2, -sh2+syOff..sh2+syOff)
+      const x3d = ((stylusX - PW / 2) / PW) * SCR_W;
+      const y3d = -((stylusY - PH / 2) / PH) * SCR_H + syOff;
+
+      vertRodMesh.position.x = x3d;
+      horizRodMesh.position.y = y3d;
+      carriageMesh.position.set(x3d, y3d, 4);
+      stylusMesh.position.set(x3d, y3d, 8.5);
+
+      knobLeft.rotation.z = -THREE.MathUtils.degToRad(knobAngleX);
+      knobRight.rotation.z = -THREE.MathUtils.degToRad(knobAngleY);
+    }
+
+    // Shake to Erase Animation
+    let isShaking = false;
+    let shakeTimer = 0;
+    function triggerShake() {
+      if (isShaking) return;
+      isShaking = true;
+      shakeTimer = 45; // frames
+    }
+
+    // Telemetry HUD Update
+    function updateTelemetry() {
+      document.getElementById('valKnobX').textContent = `${stylusX.toFixed(1)} px`;
+      document.getElementById('valKnobY').textContent = `${stylusY.toFixed(1)} px`;
+      document.getElementById('telStylus').textContent = `X: ${stylusX.toFixed(1)} | Y: ${stylusY.toFixed(1)}`;
+      document.getElementById('telKnobs').textContent = `L: ${(knobAngleX % 360).toFixed(0)}° | R: ${(knobAngleY % 360).toFixed(0)}°`;
+
+      // Calculate scraped area %
+      let scraped = 0;
+      for (let i = 0; i < scratchDepth.length; i += 8) {
+        if (scratchDepth[i] > 0.1) scraped++;
+      }
+      const pct = (scraped / (scratchDepth.length / 8)) * 100.0;
+      document.getElementById('telPowder').textContent = `${pct.toFixed(2)}% Area`;
+    }
+
+    // =========================================================================
+    // 3. Bad Apple Player & Procedural Chiptune Synthesizer
+    // =========================================================================
+    let audioCtx = null;
+    let isAudioOn = true;
+    let isPlaying = false;
+    let baFrameIdx = 0;
+    let baPlayInterval = null;
+    let playbackSpeed = 1.0;
+
+    // Bad Apple Notes for Web Audio Synthesizer
+    const BA_NOTES = [
+      67, 69, 70, 72, 70, 69, 67, 65, 67, 69, 70, 67, 65, 64, 65, 67,
+      67, 69, 70, 72, 74, 72, 70, 69, 70, 72, 74, 75, 74, 72, 70, 69
+    ];
+    let noteIdx = 0;
+
+    function playSynthNote() {
+      if (!isAudioOn) return;
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+      const midi = BA_NOTES[noteIdx % BA_NOTES.length];
+      noteIdx++;
+      const freq = 440 * Math.pow(2, (midi - 69) / 12);
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+      gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.2);
+    }
+
+    const crtCanvas = document.getElementById('crtCanvas');
+    const crtCtx = crtCanvas.getContext('2d');
+
+    function renderBadAppleFrame(fIdx) {
+      const frames = window.BAD_APPLE_FRAMES || (typeof BAD_APPLE_FRAMES !== 'undefined' ? BAD_APPLE_FRAMES : null);
+      if (!frames || frames.length === 0) return;
+      fIdx = fIdx % frames.length;
+      const fData = frames[fIdx];
+
+      document.getElementById('valBaFrame').textContent = `Frame ${fData.frame} (${fIdx + 1}/${BAD_APPLE_FRAMES.length})`;
+      document.getElementById('rngBaFrame').value = fIdx;
+
+      // Draw onto CRT Source Monitor
+      const img = new Image();
+      img.onload = () => {
+        crtCtx.fillStyle = '#000';
+        crtCtx.fillRect(0, 0, crtCanvas.width, crtCanvas.height);
+        crtCtx.drawImage(img, 0, 0, crtCanvas.width, crtCanvas.height);
+
+        // Add green phosphor scanlines
+        crtCtx.fillStyle = 'rgba(34, 197, 94, 0.15)';
+        crtCtx.fillRect(0, 0, crtCanvas.width, crtCanvas.height);
+
+        // Generate Screentone Eulerian Toolpath
+        const mode = document.getElementById('selScreentone').value;
+
+        // Temporary canvas for extracting brightness
+        const tCan = document.createElement('canvas');
+        tCan.width = 160; tCan.height = 120;
+        const tCtx = tCan.getContext('2d');
+        tCtx.drawImage(img, 0, 0, 160, 120);
+        const tData = tCtx.getImageData(0, 0, 160, 120).data;
+
+        // Reset powder for each new frame
+        resetPowder();
+
+        // Continuous Eulerian Hatch Path
+        const eulerianPath = LightScreentone.generateEulerianHatch(PW, PH, (px, py) => {
+          const ix = Math.min(Math.max(Math.floor((px / PW) * 160), 0), 159);
+          const iy = Math.min(Math.max(Math.floor((py / PH) * 120), 0), 119);
+          return tData[(iy * 160 + ix) * 4] / 255.0;
+        }, { step: 8, threshold: 0.5 });
+
+        // High-speed batch scratch onto powder buffer
+        for (let i = 0; i < eulerianPath.length - 1; i++) {
+          const p1 = eulerianPath[i];
+          const p2 = eulerianPath[i + 1];
+          const dx = p2.x - p1.x;
+          const dy = p2.y - p1.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const steps = Math.max(1, Math.ceil(dist / 2.0));
+          for (let s = 0; s <= steps; s++) {
+            const cx = Math.floor(p1.x + (dx * s) / steps);
+            const cy = Math.floor(p1.y + (dy * s) / steps);
+            for (let ry = -2; ry <= 2; ry++) {
+              const py = cy + ry;
+              if (py < 0 || py >= PH) continue;
+              for (let rx = -2; rx <= 2; rx++) {
+                const px = cx + rx;
+                if (px < 0 || px >= PW) continue;
+                scratchDepth[py * PW + px] = 1.0;
+              }
+            }
+          }
+        }
+        if (eulerianPath.length > 0) {
+          const lastP = eulerianPath[eulerianPath.length - 1];
+          stylusX = lastP.x;
+          stylusY = lastP.y;
+        }
+
+        renderPowderScreen();
+        if (screenTexture) screenTexture.needsUpdate = true;
+        updateTelemetry();
+
+        playSynthNote();
+      };
+      img.src = fData.data;
+    }
+
+    // =========================================================================
+    // 4. UI Events & User Interaction
+    // =========================================================================
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const tab = btn.dataset.tab;
+        document.getElementById('tabContentPlay').style.display = tab === 'play' ? 'block' : 'none';
+        document.getElementById('tabContentCutaway').style.display = tab === 'cutaway' ? 'block' : 'none';
+        document.getElementById('tabContentBadApple').style.display = tab === 'badapple' ? 'block' : 'none';
+
+        if (tab === 'cutaway') {
+          document.getElementById('rngExplode').value = 40;
+          updateExplodedView(0.4);
+          document.getElementById('valExplode').textContent = '40%';
+        } else {
+          document.getElementById('rngExplode').value = 0;
+          updateExplodedView(0.0);
+          document.getElementById('valExplode').textContent = '0%';
+        }
+
+        if (tab === 'badapple') {
+          renderBadAppleFrame(baFrameIdx);
+        }
+      };
+    });
+
+    // Play Mode Sliders
+    const rngKnobX = document.getElementById('rngKnobX');
+    const rngKnobY = document.getElementById('rngKnobY');
+    rngKnobX.oninput = () => moveStylusTo(parseFloat(rngKnobX.value), stylusY);
+    rngKnobY.oninput = () => moveStylusTo(stylusX, parseFloat(rngKnobY.value));
+
+    document.getElementById('btnShake').onclick = triggerShake;
+    document.getElementById('btnResetView').onclick = () => {
+      camera.position.set(0, -60, 520);
+      controls.target.set(0, 0, 0);
+    };
+
+    // Cutaway Mode Sliders
+    const rngExplode = document.getElementById('rngExplode');
+    rngExplode.oninput = () => {
+      const val = parseFloat(rngExplode.value) / 100.0;
+      document.getElementById('valExplode').textContent = `${rngExplode.value}%`;
+      updateExplodedView(val);
+    };
+
+    const rngXray = document.getElementById('rngXray');
+    rngXray.oninput = () => {
+      const val = 1.0 - parseFloat(rngXray.value) / 100.0;
+      document.getElementById('valXray').textContent = `${rngXray.value}%`;
+      cherryRedMat.opacity = val;
+    };
+
+    // Bad Apple Controls
+    const btnBaPlay = document.getElementById('btnBaPlay');
+    btnBaPlay.onclick = () => {
+      if (isPlaying) {
+        clearInterval(baPlayInterval);
+        isPlaying = false;
+        btnBaPlay.textContent = '▶️ 재생 시작';
+        document.getElementById('crtStatus').textContent = 'PAUSED';
+        document.getElementById('crtStatus').style.color = 'var(--gold)';
+      } else {
+        isPlaying = true;
+        btnBaPlay.textContent = '⏸️ 일시 정지';
+        document.getElementById('crtStatus').textContent = 'STREAMING';
+        document.getElementById('crtStatus').style.color = 'var(--green)';
+
+        const intervalMs = 280 / playbackSpeed;
+        baPlayInterval = setInterval(() => {
+          baFrameIdx = (baFrameIdx + 1) % BAD_APPLE_FRAMES.length;
+          renderBadAppleFrame(baFrameIdx);
+        }, intervalMs);
+      }
+    };
+
+    document.getElementById('rngBaFrame').oninput = (e) => {
+      baFrameIdx = parseInt(e.target.value, 10);
+      renderBadAppleFrame(baFrameIdx);
+    };
+
+    document.getElementById('btnBaAudio').onclick = () => {
+      isAudioOn = !isAudioOn;
+      document.getElementById('btnBaAudio').textContent = isAudioOn ? '🔊 신시사이저 On' : '🔇 신시사이저 Off';
+    };
+
+    document.getElementById('rngSpeed').oninput = (e) => {
+      playbackSpeed = parseFloat(e.target.value);
+      document.getElementById('valSpeed').textContent = `${playbackSpeed.toFixed(1)}x`;
+      if (isPlaying) {
+        clearInterval(baPlayInterval);
+        const intervalMs = 280 / playbackSpeed;
+        baPlayInterval = setInterval(() => {
+          baFrameIdx = (baFrameIdx + 1) % BAD_APPLE_FRAMES.length;
+          renderBadAppleFrame(baFrameIdx);
+        }, intervalMs);
+      }
+    };
+
+    // Physics Toggles
+    document.getElementById('selArmShadow').onchange = (e) => {
+      armShadowEnabled = e.target.value === '1';
+      document.getElementById('valArmShadow').textContent = armShadowEnabled ? 'ON' : 'OFF';
+      renderPowderScreen();
+      if (screenTexture) screenTexture.needsUpdate = true;
+    };
+
+    document.getElementById('rngBurr').oninput = (e) => {
+      burrIntensity = parseFloat(e.target.value);
+      document.getElementById('valBurr').textContent = burrIntensity.toFixed(1);
+    };
+
+    document.getElementById('selGlare').onchange = (e) => {
+      glareEnabled = e.target.value === '1';
+      document.getElementById('valGlare').textContent = glareEnabled ? 'ON' : 'OFF';
+      renderPowderScreen();
+      if (screenTexture) screenTexture.needsUpdate = true;
+    };
+
+    // Modal
+    document.getElementById('btnInfo').onclick = () => document.getElementById('patentModal').classList.add('open');
+    document.getElementById('btnModalClose').onclick = () => document.getElementById('patentModal').classList.remove('open');
+
+    // Keyboard Arrow Keys Drawing Support
+    window.addEventListener('keydown', (e) => {
+      let moved = false;
+      const step = 8;
+      if (e.key === 'ArrowLeft' || e.key === 'a')  { stylusX -= step; moved = true; }
+      if (e.key === 'ArrowRight' || e.key === 'd') { stylusX += step; moved = true; }
+      if (e.key === 'ArrowUp' || e.key === 'w')    { stylusY -= step; moved = true; }
+      if (e.key === 'ArrowDown' || e.key === 's')  { stylusY += step; moved = true; }
+      if (moved) {
+        moveStylusTo(stylusX, stylusY);
+        rngKnobX.value = stylusX;
+        rngKnobY.value = stylusY;
+      }
+    });
+
+    // Window resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // =========================================================================
+    // 5. Main 60 FPS Render & Physics Loop
+    // =========================================================================
+    resetPowder();
+    update3DKinematics();
+    updateTelemetry();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Handle Shake to Erase Physics
+      if (isShaking) {
+        shakeTimer--;
+        const shakeMag = (shakeTimer / 45.0) * 12.0;
+        rootAssembly.position.x = (Math.random() - 0.5) * shakeMag;
+        rootAssembly.position.y = (Math.random() - 0.5) * shakeMag;
+        rootAssembly.rotation.z = (Math.random() - 0.5) * 0.08 * (shakeTimer / 45.0);
+
+        // Agitate beads
+        for (let i = 0; i < beads.length; i++) {
+          const b = beads[i];
+          b.position.x += (Math.random() - 0.5) * 18.0;
+          b.position.y += Math.random() * 14.0;
+          if (b.position.y > SCR_H / 2 + syOff) b.position.y = -SCR_H / 2 + syOff;
+        }
+
+        // Gradually fade powder scratches back to clean aluminum
+        for (let i = 0; i < scratchDepth.length; i += 2) {
+          scratchDepth[i] *= 0.88;
+        }
+
+        renderPowderScreen();
+        if (screenTexture) screenTexture.needsUpdate = true;
+
+        if (shakeTimer <= 0) {
+          isShaking = false;
+          rootAssembly.position.set(0, 0, 0);
+          rootAssembly.rotation.set(0, 0, 0);
+          resetPowder();
+          if (screenTexture) screenTexture.needsUpdate = true;
+          updateTelemetry();
+        }
+      }
+
+      update3DKinematics();
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
