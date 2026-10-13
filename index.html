@@ -545,7 +545,7 @@
     <span>•</span>
     <span>노브 드래그: <span class="hint-chip">원형 회전</span></span>
     <span>•</span>
-    <span>빨간 본체 드래그: <span class="hint-chip">흔들기</span></span>
+    <span>빨간 본체 드래그: <span class="hint-chip">푸딩 당겨 흔들기</span></span>
     <span>•</span>
     <span>배경 드래그: <span class="hint-chip">3D 회전</span></span>
     <span>•</span>
@@ -1304,9 +1304,10 @@
       layerBeads.add(bMesh);
       beads.push(bMesh);
 
-      const px = (Math.random() - 0.5) * (SCR_W - 20);
-      const py = -sh2 + SCR_OFFSET_Y + 4 + Math.random() * 14;
-      const pz = Math.random() * 8 - 2;
+      // Deep in hidden bottom sump reservoir pocket (Y < -96, completely hidden behind red bezel casing)
+      const px = (Math.random() - 0.5) * (SCR_W - 24);
+      const py = -102.0 - Math.random() * 18.0; // Hidden behind opaque lower chassis
+      const pz = Math.random() * 6.0 - 4.0;      // Behind screen glass plane
 
       beadsPhysics.push({
         x: px, y: py, z: pz,
@@ -1376,6 +1377,14 @@
     let lastChassisPos = { x: 0, y: 0 };
     let chassisVelocitySum = 0;
 
+    // Pudding Pull-and-Release Spring Mechanics
+    let isPuddingDragging = false;
+    let isPuddingBouncing = false;
+    let puddingDragStart = { x: 0, y: 0 };
+    let puddingPosX = 0.0, puddingPosY = 0.0;
+    let puddingVelX = 0.0, puddingVelY = 0.0;
+    let puddingEnergy = 0.0;
+
     function getKnobScreenCenter(knobObj) {
       const v = new THREE.Vector3();
       knobObj.getWorldPosition(v);
@@ -1439,13 +1448,16 @@
         return;
       }
 
-      // Check Toy Red Casing for Physical Shaking
+      // Check Toy Red Casing for Physical Pudding Pull & Release
       const chassisHits = raycaster.intersectObjects([topMesh, botMesh, goldPlane], true);
       if (chassisHits.length > 0) {
         currentInteraction = 'chassis';
         controls.enabled = false;
+        isPuddingDragging = true;
+        isPuddingBouncing = false;
+        puddingDragStart = { x: e.clientX, y: e.clientY };
         lastChassisPos = { x: e.clientX, y: e.clientY };
-        chassisVelocitySum = 0;
+        puddingVelX = 0; puddingVelY = 0;
         return;
       }
 
@@ -1495,40 +1507,69 @@
         const deltaY = delta * (PH / (Math.PI * 2.2));
         targetStylusY = Math.max(16, Math.min(PH - 16, targetStylusY + deltaY));
       } else if (currentInteraction === 'chassis') {
-        // Dragging toy frame shakes the toy!
-        const dx = e.clientX - lastChassisPos.x;
-        const dy = e.clientY - lastChassisPos.y;
+        // Pudding Non-linear Rubberband Tension Drag
+        const totalDx = e.clientX - puddingDragStart.x;
+        const totalDy = e.clientY - puddingDragStart.y;
+        const instDx = e.clientX - lastChassisPos.x;
+        const instDy = e.clientY - lastChassisPos.y;
         lastChassisPos = { x: e.clientX, y: e.clientY };
 
-        const moveSpeed = Math.hypot(dx, dy);
-        chassisVelocitySum += moveSpeed;
+        // Non-linear rubberband resistance: stretching becomes progressively stiffer
+        const stretchX = totalDx / (1.0 + Math.abs(totalDx) * 0.009);
+        const stretchY = -totalDy / (1.0 + Math.abs(totalDy) * 0.009);
 
-        rootAssembly.position.x = Math.max(-45, Math.min(45, rootAssembly.position.x + dx * 0.4));
-        rootAssembly.position.y = Math.max(-35, Math.min(35, rootAssembly.position.y - dy * 0.4));
-        rootAssembly.rotation.z = Math.max(-0.25, Math.min(0.25, rootAssembly.rotation.z + dx * 0.002));
+        puddingPosX = stretchX * 0.72;
+        puddingPosY = stretchY * 0.72;
 
-        // Transfer manual drag momentum to internal beads
-        if (moveSpeed > 6) {
-          for (let k = 0; k < 25; k++) {
+        rootAssembly.position.x = puddingPosX;
+        rootAssembly.position.y = puddingPosY;
+        rootAssembly.rotation.z = stretchX * 0.0032;
+        rootAssembly.rotation.x = -stretchY * 0.0025;
+
+        // Pudding elastic squash & stretch volume preservation
+        rootAssembly.scale.x = 1.0 + stretchX * 0.0010 - Math.abs(stretchY) * 0.0007;
+        rootAssembly.scale.y = 1.0 + stretchY * 0.0010 - Math.abs(stretchX) * 0.0007;
+
+        puddingVelX = instDx * 42.0;
+        puddingVelY = -instDy * 42.0;
+
+        // Micro-vibrate beads during stretch
+        const moveSpeed = Math.hypot(instDx, instDy);
+        if (moveSpeed > 4) {
+          for (let k = 0; k < 18; k++) {
             const idx = Math.floor(Math.random() * BEAD_COUNT);
-            beadsPhysics[idx].vx += dx * 5.5;
-            beadsPhysics[idx].vy -= dy * 5.5;
-            beadsPhysics[idx].vz += moveSpeed * 1.8;
+            beadsPhysics[idx].vx += instDx * 3.2;
+            beadsPhysics[idx].vy -= instDy * 3.2;
+            beadsPhysics[idx].vz += moveSpeed * 1.2;
           }
-        }
-
-        if (chassisVelocitySum > 85 || moveSpeed > 17) {
-          startShakeAnimation();
-          chassisVelocitySum = 0;
         }
       }
     });
 
     window.addEventListener('pointerup', () => {
       if (currentInteraction === 'chassis') {
-        // Ease back to center
-        rootAssembly.position.set(0, 0, 0);
-        rootAssembly.rotation.set(0, 0, 0);
+        isPuddingDragging = false;
+        const dragDist = Math.hypot(puddingPosX, puddingPosY);
+        const releaseSpeed = Math.hypot(puddingVelX, puddingVelY);
+
+        if (dragDist > 2.2 || releaseSpeed > 22.0) {
+          // Trigger bouncy jelly harmonic oscillation!
+          isPuddingBouncing = true;
+          puddingEnergy = dragDist * 1.5 + releaseSpeed * 0.12;
+
+          // Propel beads upward into chamber based on release tension!
+          const beadKick = Math.min(780, dragDist * 15.0 + releaseSpeed * 4.2);
+          for (const bp of beadsPhysics) {
+            bp.vx += (Math.random() - 0.5) * beadKick * 0.75;
+            bp.vy += 220 + Math.random() * beadKick;
+            bp.vz += 45 + Math.random() * 95;
+          }
+        } else {
+          rootAssembly.position.set(0, 0, 0);
+          rootAssembly.rotation.set(0, 0, 0);
+          rootAssembly.scale.set(1, 1, 1);
+          isPuddingBouncing = false;
+        }
       }
       currentInteraction = null;
       controls.enabled = true;
@@ -2040,7 +2081,7 @@
         updateTelemetryHUD();
       }
 
-      // 3. Realistic Harmonic Shaking Simulation & Continuous Natural Erasing
+      // 3. Realistic Harmonic Shaking & Pudding Bounce Oscillator
       let shakeAccX = 0;
       let shakeAccY = 0;
 
@@ -2052,9 +2093,10 @@
           isShaking = false;
           rootAssembly.position.set(0, 0, 0);
           rootAssembly.rotation.set(0, 0, 0);
+          rootAssembly.scale.set(1, 1, 1);
           resetPowderBuffer();
         } else {
-          // Natural bell-shaped excitation envelope: acceleration -> peak turbulence -> calm settling
+          // Natural bell-shaped excitation envelope
           const envelope = Math.sin(progress * Math.PI);
           const freq = 14.5;
           const osc = Math.sin(progress * Math.PI * freq) * envelope;
@@ -2067,14 +2109,14 @@
           shakeAccX = -osc * 1150.0;
           shakeAccY = Math.cos(progress * Math.PI * freq) * envelope * 1050.0;
 
-          // Continuous 3D Vector Line Opacity Fade (Smooth cubic Hermite transition)
+          // Continuous 3D Vector Line Opacity Fade (Hermite transition)
           if (typeof vectorLineMat !== 'undefined' && vectorLineMat) {
             const fadeT = Math.max(0, Math.min(1, progress * 1.15));
             const alpha = 1.0 - fadeT * fadeT * (3.0 - 2.0 * fadeT);
             vectorLineMat.opacity = 0.95 * alpha;
           }
 
-          // Continuous Organic Powder Cloud Recoat: exponentially dampens scratch trench depth
+          // Continuous Organic Powder Cloud Recoat
           const powderCloudErase = Math.pow(0.935, dt * 60 * (0.75 + envelope * 1.25));
           for (let i = 0; i < scratchDepth.length; i++) {
             if (scratchDepth[i] > 0.001) {
@@ -2089,13 +2131,73 @@
           if (screenTexture) screenTexture.needsUpdate = true;
           updateTelemetryHUD();
         }
+      } else if (isPuddingBouncing) {
+        // [PUDDING SPRING OSCILLATOR] Underdamped Jelly Bounciness (k = 250, c = 12)
+        const kPudding = 250.0;
+        const cPudding = 12.0;
+
+        const ax = -puddingPosX * kPudding - puddingVelX * cPudding;
+        const ay = -puddingPosY * kPudding - puddingVelY * cPudding;
+
+        puddingVelX += ax * dt;
+        puddingVelY += ay * dt;
+        puddingPosX += puddingVelX * dt;
+        puddingPosY += puddingVelY * dt;
+
+        rootAssembly.position.x = puddingPosX;
+        rootAssembly.position.y = puddingPosY;
+        rootAssembly.rotation.z = puddingPosX * 0.0032;
+        rootAssembly.rotation.x = -puddingPosY * 0.0026;
+
+        // Pudding elastic jiggle deformation
+        rootAssembly.scale.x = 1.0 + puddingPosX * 0.0010 - puddingPosY * 0.0006;
+        rootAssembly.scale.y = 1.0 + puddingPosY * 0.0010 - puddingPosX * 0.0006;
+
+        // Reactive inertial acceleration kicks beads inside chamber
+        shakeAccX = -ax * 0.72;
+        shakeAccY = -ay * 0.72;
+
+        // Erase lines dynamically during pudding bounce
+        const currentEnergy = Math.hypot(puddingPosX, puddingPosY) + Math.hypot(puddingVelX, puddingVelY) * 0.035;
+        if (currentEnergy > 1.5) {
+          const eraseRate = Math.pow(0.92, dt * 60 * Math.min(3.5, currentEnergy * 0.35));
+          for (let i = 0; i < scratchDepth.length; i++) {
+            if (scratchDepth[i] > 0.001) {
+              scratchDepth[i] *= eraseRate;
+              if (currentEnergy < 3.0 && scratchDepth[i] < 0.02) scratchDepth[i] = 0.0;
+            }
+          }
+          if (typeof vectorLineMat !== 'undefined' && vectorLineMat) {
+            vectorLineMat.opacity = Math.max(0, vectorLineMat.opacity - dt * currentEnergy * 0.14);
+          }
+          renderPowderScreen();
+          if (screenTexture) screenTexture.needsUpdate = true;
+          updateTelemetryHUD();
+        }
+
+        // Settling to calm rest
+        if (Math.hypot(puddingPosX, puddingPosY) < 0.25 && Math.hypot(puddingVelX, puddingVelY) < 1.5) {
+          rootAssembly.position.set(0, 0, 0);
+          rootAssembly.rotation.set(0, 0, 0);
+          rootAssembly.scale.set(1, 1, 1);
+          puddingPosX = 0; puddingPosY = 0;
+          puddingVelX = 0; puddingVelY = 0;
+          isPuddingBouncing = false;
+
+          let scraped = 0;
+          for (let i = 0; i < scratchDepth.length; i += 32) {
+            if (scratchDepth[i] > 0.05) scraped++;
+          }
+          if (scraped < 8) resetPowderBuffer();
+        }
       }
 
-      // 4. Dynamic 3D Polystyrene Bead Physics Update
-      const gravity = -550.0;
-      const restitution = 0.52;
+      // 4. Dynamic 3D Polystyrene Bead Physics (Gravity Sump: completely hidden at rest)
+      const gravity = -950.0; // Strong gravity reliably settles beads deep in bottom reservoir
+      const restitution = 0.42;
       const minX = -sw2 + 4, maxX = sw2 - 4;
-      const minY = -sh2 + SCR_OFFSET_Y + 4, maxY = sh2 + SCR_OFFSET_Y - 4;
+      const minY = -124.0; // Bottom sump pocket (below visible window at -86.5)
+      const maxY = sh2 + SCR_OFFSET_Y - 4;
       const minZ = -7.5, maxZ = 11.2;
 
       let screenErasedByBeads = false;
@@ -2120,7 +2222,7 @@
         if (bp.y < minY) {
           bp.y = minY;
           bp.vy = -bp.vy * restitution;
-          bp.vx *= 0.88;
+          bp.vx *= 0.82;
         } else if (bp.y > maxY) {
           bp.y = maxY;
           bp.vy = -bp.vy * restitution;
@@ -2129,8 +2231,8 @@
         if (bp.z < minZ) { bp.z = minZ; bp.vz = -bp.vz * restitution; }
         else if (bp.z > maxZ) { bp.z = maxZ; bp.vz = -bp.vz * restitution; }
 
-        // Active screen powder clearing on glass contact with soft radial scrub
-        if ((isShaking || currentInteraction === 'chassis') && bp.z > 5.5 && bp.y > minY + 8) {
+        // Active screen powder clearing on glass contact ONLY when bead leaps into visible window (Y > -86.5)
+        if ((isShaking || isPuddingBouncing || isPuddingDragging) && bp.z > 5.5 && bp.y > (-sh2 + SCR_OFFSET_Y)) {
           const scrX = Math.round(((bp.x + sw2) / SCR_W) * PW);
           const scrY = Math.round(((-bp.y + sh2 + SCR_OFFSET_Y) / SCR_H) * PH);
 
@@ -2153,7 +2255,7 @@
         beads[i].position.set(bp.x, bp.y, bp.z);
       }
 
-      if (screenErasedByBeads && !isShaking) {
+      if (screenErasedByBeads && !isShaking && !isPuddingBouncing) {
         renderPowderScreen();
         if (screenTexture) screenTexture.needsUpdate = true;
       }
